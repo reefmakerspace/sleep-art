@@ -1,0 +1,1255 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Somnograph</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@400;600;800;900&family=Chivo+Mono:wght@400;500;700&display=swap">
+<style>
+/* Layout: a flat control rail on the left, a square print stage on the right; stacks on narrow screens */
+:root{
+  --bg:#E2E0D8; --panel:#EEECE5; --ink:#1B1A18; --muted:#6B675F; --rule:#1B1A18;
+  --teal:#1E6B66; --mustard:#E3A21A; --tomato:#D4472A; --stage:#CDCAC1;
+  --display:"Chivo", system-ui, sans-serif;
+  --mono:"Chivo Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#131417; --panel:#1B1C20; --ink:#ECE9E2; --muted:#9A968D; --rule:#ECE9E2;
+  --teal:#58B7AE; --mustard:#F0B53A; --tomato:#EE6A4C; --stage:#0C0D0F; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#131417; --panel:#1B1C20; --ink:#ECE9E2; --muted:#9A968D; --rule:#ECE9E2;
+  --teal:#58B7AE; --mustard:#F0B53A; --tomato:#EE6A4C; --stage:#0C0D0F; color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--display);font-size:14px;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:20px 40px}
+.app{max-width:1440px;margin:0 auto;display:grid;grid-template-columns:330px minmax(0,1fr);gap:24px;align-items:start}
+header.top{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;border-bottom:3px solid var(--rule);padding-bottom:12px}
+.brand{display:flex;align-items:center;gap:14px}
+.stripes{display:grid;gap:3px;width:34px}
+.stripes i{display:block;height:6px}
+.stripes i:nth-child(1){background:var(--mustard)} .stripes i:nth-child(2){background:var(--tomato)} .stripes i:nth-child(3){background:var(--teal)}
+h1{margin:0;font-weight:900;font-size:clamp(28px,4vw,40px);letter-spacing:-0.02em;line-height:1;text-wrap:balance}
+.sub{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.04em;margin-top:4px}
+.chip{font-family:var(--mono);font-size:12px;border:2px solid var(--rule);padding:6px 10px;font-variant-numeric:tabular-nums;letter-spacing:.03em}
+
+.rail{border:2px solid var(--rule);background:var(--panel);min-width:0}
+.sec{border-bottom:2px solid var(--rule)}
+.sec:last-child{border-bottom:0}
+details.sec>summary{list-style:none;cursor:pointer;padding:14px 16px;user-select:none}
+details.sec>summary::-webkit-details-marker{display:none}
+details.sec>summary span{margin-left:auto;margin-right:10px}
+details.sec>summary::after{content:"+";font-size:15px;line-height:1;width:12px;text-align:center}
+details.sec[open]>summary::after{content:"\2212"}
+details.sec>summary:focus-visible{outline:2px dashed var(--teal);outline-offset:-4px}
+.sec .body{padding:0 16px 16px;display:grid;gap:12px}
+.note{font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.5;margin:0}
+.sublab{font-family:var(--mono);font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:4px}
+.mobile-only{display:none}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top, 0px);z-index:10;background:var(--bg)}
+.fab{position:absolute;top:10px;right:10px;width:44px;height:44px;border:2px solid var(--rule);background:var(--panel);color:var(--ink);display:grid;place-items:center;cursor:pointer;padding:0}
+.fab svg{width:18px;height:18px;fill:currentColor}
+.fab[aria-pressed="true"]{background:var(--mustard);color:#1B1A18}
+.fab:focus-visible{outline:2px dashed var(--teal);outline-offset:2px}
+.lab{font-family:var(--mono);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;display:flex;justify-content:space-between;align-items:center}
+.lab span{color:var(--muted);font-weight:500}
+
+.seg{display:grid;grid-template-columns:repeat(3,1fr);border:2px solid var(--rule)}
+.seg.two{grid-template-columns:repeat(2,1fr)}
+.seg button{font:600 13px var(--display);background:transparent;color:var(--ink);border:0;border-right:2px solid var(--rule);padding:9px 4px;cursor:pointer}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
+.seg button:hover:not([aria-pressed="true"]){background:color-mix(in srgb, var(--mustard) 35%, transparent)}
+
+.ctl{display:grid;gap:4px}
+.ctl .row{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.ctl label{font-weight:600;font-size:13px}
+.ctl output{font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums}
+.ctl small{font-family:var(--mono);font-size:10.5px;color:var(--muted);line-height:1.35}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;margin:0;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--ink)}
+input[type=range]::-moz-range-track{height:4px;background:var(--ink)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;margin-top:-6px;background:var(--mustard);border:2px solid var(--ink);border-radius:0}
+input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--mustard);border:2px solid var(--ink);border-radius:0}
+input[type=range]:focus-visible{outline:2px dashed var(--teal);outline-offset:3px}
+button:focus-visible,select:focus-visible,label.file:focus-within{outline:2px dashed var(--teal);outline-offset:2px}
+
+.swatches{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.sw{border:2px solid var(--rule);height:34px;padding:0;display:grid;grid-template-columns:repeat(4,1fr);cursor:pointer;background:none}
+.sw i{display:block;height:100%}
+.sw[aria-pressed="true"]{outline:3px solid var(--mustard);outline-offset:2px}
+.swnames{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;font-family:var(--mono);font-size:9.5px;color:var(--muted);text-align:center;margin-top:-6px}
+
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.btn{font:700 13px var(--display);border:2px solid var(--rule);background:transparent;color:var(--ink);padding:9px 12px;cursor:pointer;flex:1;text-align:center}
+.btn:hover{background:color-mix(in srgb, var(--mustard) 35%, transparent)}
+.btn.primary{background:var(--teal);color:#fff;border-color:var(--rule)}
+.btn.primary:hover{background:color-mix(in srgb, var(--teal) 80%, #000)}
+label.file{position:relative;overflow:hidden}
+label.file input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.toggle{display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px;cursor:pointer}
+.toggle input{appearance:none;width:34px;height:18px;border:2px solid var(--rule);position:relative;cursor:pointer;margin:0;background:transparent}
+.toggle input::after{content:"";position:absolute;top:2px;left:2px;width:10px;height:10px;background:var(--ink);transition:left .15s}
+.toggle input:checked{background:var(--mustard)}
+.toggle input:checked::after{left:18px}
+.toggles{display:flex;gap:18px;flex-wrap:wrap}
+select{font:600 13px var(--display);border:2px solid var(--rule);background:var(--panel);color:var(--ink);padding:8px;border-radius:0;flex:1;min-width:0}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);border:2px solid var(--rule)}
+.stats div{padding:8px;border-right:2px solid var(--rule)}
+.stats div:last-child{border-right:0}
+.stats b{display:block;font-size:18px;font-weight:800;font-variant-numeric:tabular-nums}
+.stats span{font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.hint{font-family:var(--mono);font-size:10.5px;color:var(--muted);font-weight:400}
+.btn:disabled{opacity:.5;cursor:progress}
+.status{font-family:var(--mono);font-size:11px;color:var(--muted);min-height:1.3em}
+
+.stagecol{position:sticky;top:max(16px, env(safe-area-inset-top, 0px));display:grid;gap:12px;min-width:0}
+.stage{border:2px solid var(--rule);background:var(--stage);aspect-ratio:1/1;width:100%;max-width:min(100%, calc(100vh - 140px));margin:0 auto;position:relative}
+.stage canvas{display:block;width:100%;height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:flex-start;justify-content:space-between;font-family:var(--mono);font-size:11.5px;line-height:1.5;color:var(--muted);max-width:min(100%, calc(100vh - 140px));margin:0 auto;width:100%}
+.legend p{margin:0;max-width:62ch;flex:1 1 320px}
+.keys{display:flex;gap:12px;flex-wrap:wrap}
+.keys span{display:flex;align-items:center;gap:6px;color:var(--ink)}
+.keys i{width:12px;height:12px;border:1.5px solid var(--rule);display:block}
+
+@media (max-width:860px){
+  body{padding-block:10px 40px}
+  .app{grid-template-columns:minmax(0,1fr);gap:10px}
+  header.top{padding-bottom:8px;border-bottom-width:2px}
+  h1{font-size:26px}
+  .stripes{width:26px}
+  .sub{font-size:10px}
+  .chip{font-size:10px;padding:4px 7px;border-width:1.5px}
+  .stagecol{grid-row:2;position:sticky;top:env(safe-area-inset-top, 0px);z-index:5;background:var(--bg);padding-block:6px 8px;box-shadow:0 0 0 16px var(--bg);gap:0}
+  .stage{max-width:min(100%, 52vh);max-width:min(100%, 52svh)}
+  .legend{display:none}
+  .mobile-only{display:block}
+  .rail{grid-row:3}
+}
+@media (pointer:coarse){
+  input[type=range]{height:38px}
+  input[type=range]::-webkit-slider-thumb{width:26px;height:26px;margin-top:-11px}
+  input[type=range]::-moz-range-thumb{width:22px;height:22px}
+  .seg button,.btn{padding:13px 6px;font-size:14px}
+  select{font-size:16px;padding:11px 8px}
+  .toggle{font-size:14px;min-height:36px}
+  .toggle input{width:44px;height:26px}
+  .toggle input::after{width:18px;height:18px}
+  .toggle input:checked::after{left:20px}
+  .sw{height:44px}
+  details.sec>summary{padding:17px 16px}
+}
+@media (prefers-reduced-motion:reduce){ *{transition:none!important} }
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <div class="stripes" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div>
+        <h1>Somnograph</h1>
+        <div class="sub">WHOOP SLEEP DATA → GENERATIVE PRINTS</div>
+      </div>
+    </div>
+    <div class="chip" id="dataChip">—</div>
+  </header>
+
+  <aside class="rail" aria-label="Controls">
+    <details class="sec" open data-m="open">
+      <summary class="lab">Form</summary>
+      <div class="body">
+        <div class="seg" id="styleSeg" role="group" aria-label="Visual form">
+          <button type="button" data-style="corona" aria-pressed="true">Corona</button>
+          <button type="button" data-style="burst" aria-pressed="false">Burst</button>
+          <button type="button" data-style="bloom" aria-pressed="false">Bloom</button>
+        </div>
+        <p class="note mobile-only" id="legendMobile"></p>
+      </div>
+    </details>
+
+    <details class="sec" open data-m="open">
+      <summary class="lab">Shape</summary>
+      <div class="body">
+        <div class="ctl"><div class="row"><label for="peaks">Peaks</label><output id="peaksOut"></output></div>
+          <input type="range" id="peaks" min="0" max="100" value="55">
+          <small>How hard your long nights spike past the average ones</small></div>
+        <div class="ctl"><div class="row"><label for="contrast">Contrast</label><output id="contrastOut"></output></div>
+          <input type="range" id="contrast" min="0" max="100" value="50">
+          <small>Fades weak nights, brightens strong ones</small></div>
+        <div class="ctl"><div class="row"><label for="complexity">Complexity</label><output id="complexityOut"></output></div>
+          <input type="range" id="complexity" min="0" max="100" value="55">
+          <small>Strands, ticks, petals and background marks per night</small></div>
+        <div class="ctl"><div class="row"><label for="twist">Twist</label><output id="twistOut"></output></div>
+          <input type="range" id="twist" min="-100" max="100" value="0">
+          <small>Spins the whole artwork into a spiral, up to 1¼ turns either way</small></div>
+        <div class="ctl"><div class="row"><label for="weight">Line weight</label><output id="weightOut"></output></div>
+          <input type="range" id="weight" min="0" max="100" value="35"></div>
+        <label class="toggle" id="tiltWrap"><input type="checkbox" id="tilt"> Random tilt <span class="hint">· new angle with each seed</span></label>
+      </div>
+    </details>
+
+    <details class="sec" open data-m="closed">
+      <summary class="lab">Colour</summary>
+      <div class="body">
+        <div class="swatches" id="swatches" role="group" aria-label="Palette"></div>
+        <div class="swnames" id="swnames" aria-hidden="true"></div>
+        <div class="seg two" id="bgSeg" role="group" aria-label="Background">
+          <button type="button" data-bg="night" aria-pressed="true">Night ground</button>
+          <button type="button" data-bg="paper" aria-pressed="false">Paper ground</button>
+        </div>
+      </div>
+    </details>
+
+    <details class="sec" open data-m="closed">
+      <summary class="lab">Motion <span id="motionLab">Paused</span></summary>
+      <div class="body">
+        <div class="seg" id="modeSeg" role="group" aria-label="Animation">
+          <button type="button" data-mode="grow" aria-pressed="false">Grow</button>
+          <button type="button" data-mode="drift" aria-pressed="false">Drift</button>
+          <button type="button" data-mode="both" aria-pressed="true">Both</button>
+        </div>
+        <div class="ctl"><div class="row"><label for="dur">Loop length</label><output id="durOut"></output></div>
+          <input type="range" id="dur" min="2" max="10" value="5">
+          <small>Grow builds the piece, holds, then folds it back. Drift sways, spins and breathes.</small></div>
+        <button type="button" class="btn" id="play" aria-pressed="false">Play</button>
+      </div>
+    </details>
+
+    <details class="sec" open data-m="closed">
+      <summary class="lab">Data <span id="nightsLab"></span></summary>
+      <div class="body">
+        <p class="note" id="dataNote">Showing the creator's own WHOOP nights. Load your WHOOP sleeps.csv to make art from your sleep. Your file is read on your device and never uploaded.</p>
+        <div class="btns"><label class="btn file">Load your sleeps.csv<input type="file" id="file" accept=".csv,text/csv,text/comma-separated-values,application/vnd.ms-excel"></label></div>
+        <div class="ctl"><div class="row"><label for="nights">Nights</label><output id="nightsOut"></output></div>
+          <input type="range" id="nights" min="7" max="200" value="200">
+          <small>Counts back from the most recent night</small></div>
+        <div class="toggles">
+          <label class="toggle"><input type="checkbox" id="naps"> Include naps</label>
+          <label class="toggle"><input type="checkbox" id="labels" checked> Print labels</label>
+        </div>
+        <div class="stats" id="stats"></div>
+      </div>
+    </details>
+
+    <details class="sec" open data-m="closed">
+      <summary class="lab">Seed <span id="seedLab"></span></summary>
+      <div class="body">
+        <div class="btns">
+          <button type="button" class="btn" id="shuffle">Shuffle seed</button>
+          <button type="button" class="btn" id="remix">Remix all</button>
+        </div>
+      </div>
+    </details>
+
+    <details class="sec" open data-m="open">
+      <summary class="lab">Export</summary>
+      <div class="body">
+        <div class="sublab">Still image</div>
+        <div class="btns">
+          <select id="fmt" aria-label="File format"><option value="png">PNG</option><option value="jpg">JPG</option></select>
+          <select id="size" aria-label="Image size"><option value="1080">1080 px</option><option value="2048" selected>2048 px</option><option value="4096">4096 px</option></select>
+        </div>
+        <button type="button" class="btn primary" id="export">Export image</button>
+        <div class="status" id="status" role="status"></div>
+        <div class="sublab">Animated GIF · uses the Motion settings</div>
+        <div class="btns">
+          <select id="gifSize" aria-label="GIF size"><option value="480">480 px</option><option value="720" selected>720 px</option><option value="1080">1080 px</option></select>
+          <select id="gifFps" aria-label="GIF frame rate"><option value="12">12 fps</option><option value="20" selected>20 fps</option><option value="30">30 fps</option></select>
+        </div>
+        <button type="button" class="btn primary" id="exportGif">Export GIF</button>
+        <div class="status" id="gifStatus" role="status"></div>
+      </div>
+    </details>
+  </aside>
+
+  <section class="stagecol" aria-label="Artwork">
+    <div class="stage"><button type="button" class="fab" id="playFab" aria-label="Play animation" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path id="fabIcon" d="M7 4l13 8-13 8z"/></svg></button><canvas id="cv" role="img" aria-label="Generative artwork made from sleep data"></canvas></div>
+    <div class="legend"><p id="legendText"></p><div class="keys" id="keys"></div></div>
+  </section>
+</div>
+
+<script type="text/csv" id="csv">Cycle start time,Cycle end time,Cycle timezone,Sleep onset,Wake onset,Sleep performance %,Respiratory rate (rpm),Asleep duration (min),In bed duration (min),Light sleep duration (min),Deep (SWS) duration (min),REM duration (min),Awake duration (min),Sleep need (min),Sleep debt (min),Sleep efficiency %,Sleep consistency %,Nap
+2026-10-18 00:49:04,,UTC-04:00,2026-10-18 00:49:04,2026-10-18 06:59:35,73,16.0,347,370,152,74,121,23,523,67,93,49,false
+2026-10-16 21:46:37,2026-10-18 00:49:04,UTC-04:00,2026-10-16 21:46:37,2026-10-17 05:14:45,83,16.8,423,448,171,127,125,25,528,72,94,76,false
+2026-10-15 21:11:05,2026-10-16 21:46:37,UTC-04:00,2026-10-15 21:11:05,2026-10-16 05:31:39,82,16.2,470,500,162,177,131,30,583,127,94,71,false
+2026-10-15 03:19:20,2026-10-15 21:11:05,UTC-04:00,2026-10-15 03:19:20,2026-10-15 05:57:15,31,15.8,141,157,74,34,33,16,403,26,89,47,false
+2026-10-13 21:05:33,2026-10-15 03:19:20,UTC-04:00,2026-10-14 22:24:19,2026-10-14 23:52:31,28,16.9,84,88,21,46,17,4,487,26,95,,true
+2026-10-13 21:05:33,2026-10-15 03:19:20,UTC-04:00,2026-10-13 21:05:33,2026-10-14 05:18:10,82,16.3,432,492,167,129,136,60,485,30,87,72,false
+2026-10-12 22:15:54,2026-10-13 21:05:33,UTC-04:00,2026-10-12 22:15:54,2026-10-13 05:51:17,84,16.2,402,455,139,172,91,53,462,0,88,76,false
+2026-10-11 20:33:24,2026-10-12 22:15:54,UTC-04:00,2026-10-11 20:33:24,2026-10-12 06:09:12,84,16.6,524,575,253,133,138,51,489,31,91,64,false
+2026-10-10 23:46:15,2026-10-11 20:33:24,UTC-04:00,2026-10-10 23:46:15,2026-10-11 07:22:01,83,16.8,416,455,175,125,116,39,478,20,92,70,false
+2026-10-09 22:38:26,2026-10-10 23:46:15,UTC-04:00,2026-10-09 22:38:26,2026-10-10 06:59:46,87,16.8,471,501,177,122,172,30,503,48,94,76,false
+2026-10-08 21:50:50,2026-10-09 22:38:26,UTC-04:00,2026-10-08 21:50:50,2026-10-09 05:31:02,86,16.5,435,460,196,123,116,25,511,56,94,81,false
+2026-10-07 22:52:54,2026-10-08 21:50:50,UTC-04:00,2026-10-07 22:52:54,2026-10-08 06:45:06,81,16.8,431,472,164,117,150,41,519,63,91,65,false
+2026-10-06 21:25:48,2026-10-07 22:52:54,UTC-04:00,2026-10-06 21:25:48,2026-10-07 04:28:49,87,16.9,402,423,150,129,123,21,501,44,95,86,false
+2026-10-05 21:18:15,2026-10-06 21:25:48,UTC-04:00,2026-10-05 21:18:15,2026-10-06 05:33:16,86,17.0,454,495,179,147,128,41,524,69,91,81,false
+2026-10-04 21:46:51,2026-10-05 21:18:15,UTC-04:00,2026-10-04 21:46:51,2026-10-05 04:38:13,83,17.0,370,411,139,93,138,41,478,23,90,78,false
+2026-10-03 21:33:18,2026-10-04 21:46:51,UTC-04:00,2026-10-03 21:33:18,2026-10-04 06:52:10,84,16.8,519,558,245,108,166,39,555,101,93,69,false
+2026-10-02 20:37:06,2026-10-03 21:33:18,UTC-04:00,2026-10-02 20:37:06,2026-10-03 03:51:36,79,17.2,385,434,206,94,85,49,542,87,88,69,false
+2026-10-01 21:29:41,2026-10-02 20:37:06,UTC-04:00,2026-10-01 21:29:41,2026-10-02 05:37:18,84,17.1,438,487,206,116,116,49,574,119,89,82,false
+2026-09-30 22:10:37,2026-10-01 21:29:41,UTC-04:00,2026-09-30 22:10:37,2026-10-01 05:00:06,83,17.6,385,409,139,131,115,24,571,116,94,89,false
+2026-09-29 22:16:05,2026-09-30 22:10:37,UTC-04:00,2026-09-29 22:16:05,2026-09-30 05:04:06,81,17.8,374,408,119,146,109,34,555,100,91,81,false
+2026-09-28 22:36:18,2026-09-29 22:16:05,UTC-04:00,2026-09-28 22:36:18,2026-09-29 04:53:33,73,19.0,337,377,108,136,93,40,538,83,89,72,false
+2026-09-27 20:30:25,2026-09-28 22:36:18,UTC-04:00,2026-09-27 20:30:25,2026-09-28 05:57:17,51,17.5,388,566,226,117,45,178,554,93,68,73,false
+2026-09-26 23:30:24,2026-09-27 20:30:25,UTC-04:00,2026-09-26 23:30:24,2026-09-27 05:10:41,56,17.0,274,340,103,97,74,66,461,6,80,68,false
+2026-09-25 20:39:30,2026-09-26 23:30:24,UTC-04:00,2026-09-25 20:39:30,2026-09-26 06:19:09,89,15.4,528,579,221,127,180,51,538,81,91,77,false
+2026-09-24 21:43:02,2026-09-25 20:39:30,UTC-04:00,2026-09-24 21:43:02,2026-09-25 05:30:03,86,15.5,423,467,134,171,118,44,549,62,90,86,false
+2026-09-23 21:53:24,2026-09-24 21:43:02,UTC-04:00,2026-09-23 21:53:24,2026-09-24 04:42:24,82,15.7,376,409,170,122,84,33,473,0,92,72,false
+2026-09-22 20:51:38,2026-09-23 21:53:24,UTC-04:00,2026-09-22 20:51:38,2026-09-23 05:19:09,90,16.2,457,507,206,131,120,50,455,0,90,77,false
+2026-09-21 20:46:56,2026-09-22 20:51:38,UTC-04:00,2026-09-21 20:46:56,2026-09-22 05:59:57,86,16.2,496,553,241,122,133,57,462,7,89,70,false
+2026-09-20 20:25:32,2026-09-21 20:46:56,UTC-04:00,2026-09-20 20:25:32,2026-09-21 05:44:26,81,16.4,530,558,231,135,164,28,542,80,94,54,false
+2026-09-19 23:42:14,2026-09-20 20:25:32,UTC-04:00,2026-09-19 23:42:14,2026-09-20 06:19:45,65,15.8,325,397,124,101,100,72,486,127,81,49,false
+2026-09-18 22:24:11,2026-09-19 23:42:14,UTC-04:00,2026-09-19 11:31:43,2026-09-19 13:23:13,26,16.8,98,111,53,36,9,13,584,127,89,,true
+2026-09-18 22:24:11,2026-09-19 23:42:14,UTC-04:00,2026-09-18 22:24:11,2026-09-19 04:08:13,70,16.5,322,344,131,123,68,22,582,90,94,83,false
+2026-09-17 22:02:29,2026-09-18 22:24:11,UTC-04:00,2026-09-17 22:02:29,2026-09-18 05:21:05,81,15.0,378,438,172,92,114,60,558,85,86,91,false
+2026-09-16 22:08:07,2026-09-17 22:02:29,UTC-04:00,2026-09-16 22:08:07,2026-09-17 04:37:41,81,15.9,352,389,122,137,93,37,522,56,90,82,false
+2026-09-15 21:55:35,2026-09-16 22:08:07,UTC-04:00,2026-09-15 21:55:35,2026-09-16 05:15:04,83,16.1,385,439,171,99,115,54,473,17,87,82,false
+2026-09-14 21:42:44,2026-09-15 21:55:35,UTC-04:00,2026-09-14 21:42:44,2026-09-15 05:29:48,88,15.1,430,467,250,93,87,37,456,0,92,79,false
+2026-09-13 22:00:39,2026-09-14 21:42:44,UTC-04:00,2026-09-13 22:00:39,2026-09-14 06:50:06,84,16.4,454,529,225,109,120,75,454,0,85,77,false
+2026-09-12 19:57:36,2026-09-13 22:00:39,UTC-04:00,2026-09-12 19:57:36,2026-09-13 06:52:07,83,15.6,587,654,243,162,182,67,552,83,89,61,false
+2026-09-11 22:10:02,2026-09-12 19:57:36,UTC-04:00,2026-09-11 22:10:02,2026-09-12 05:39:42,84,15.8,409,449,165,123,121,40,538,83,90,81,false
+2026-09-10 21:51:01,2026-09-11 22:10:02,UTC-04:00,2026-09-10 21:51:01,2026-09-11 04:55:02,80,16.8,367,424,153,128,86,57,535,80,86,84,false
+2026-09-09 21:36:21,2026-09-10 21:51:01,UTC-04:00,2026-09-09 21:36:21,2026-09-10 05:03:30,78,15.8,379,447,159,122,98,68,539,57,84,77,false
+2026-09-08 21:04:18,2026-09-09 21:36:21,UTC-04:00,2026-09-08 21:04:18,2026-09-09 03:59:51,76,16.4,354,415,141,138,75,61,468,12,85,61,false
+2026-09-07 21:00:47,2026-09-08 21:04:18,UTC-04:00,2026-09-07 21:00:47,2026-09-08 05:59:48,85,16.3,484,539,236,136,112,55,505,35,89,69,false
+2026-09-06 23:03:14,2026-09-07 21:00:47,UTC-04:00,2026-09-06 23:03:14,2026-09-07 06:38:21,83,15.8,414,455,182,111,121,41,469,7,90,71,false
+2026-09-05 21:39:27,2026-09-06 23:03:14,UTC-04:00,2026-09-05 21:39:27,2026-09-06 07:47:30,83,16.0,566,608,269,134,163,42,577,120,93,61,false
+2026-09-05 00:07:18,2026-09-05 21:39:27,UTC-04:00,2026-09-05 00:07:18,2026-09-05 05:31:07,69,15.9,312,323,143,96,73,11,552,54,96,68,false
+2026-09-03 21:32:15,2026-09-05 00:07:18,UTC-04:00,2026-09-03 21:32:15,2026-09-04 05:06:04,88,16.2,422,453,179,110,133,31,507,47,93,87,false
+2026-09-02 21:47:53,2026-09-03 21:32:15,UTC-04:00,2026-09-02 21:47:53,2026-09-03 05:28:50,87,15.3,421,460,189,141,91,39,495,34,91,84,false
+2026-09-01 21:58:40,2026-09-02 21:47:53,UTC-04:00,2026-09-01 21:58:40,2026-09-02 05:26:58,85,16.0,416,448,168,149,99,32,469,13,92,75,false
+2026-08-31 21:25:17,2026-09-01 21:58:40,UTC-04:00,2026-08-31 21:25:17,2026-09-01 06:08:12,84,16.6,461,522,240,99,122,61,482,25,88,73,false
+2026-08-30 22:10:07,2026-08-31 21:25:17,UTC-04:00,2026-08-30 22:10:07,2026-08-31 06:23:49,81,16.3,429,493,187,137,105,64,480,21,87,71,false
+2026-08-29 23:48:48,2026-08-30 22:10:07,UTC-04:00,2026-08-29 23:48:48,2026-08-30 07:45:21,81,15.8,460,476,231,100,129,16,503,48,96,61,false
+2026-08-28 23:13:31,2026-08-29 23:48:48,UTC-04:00,2026-08-28 23:13:31,2026-08-29 07:23:06,79,15.9,446,489,175,147,124,43,542,69,91,57,false
+2026-08-27 21:45:24,2026-08-28 23:13:31,UTC-04:00,2026-08-27 21:45:24,2026-08-28 05:12:55,79,16.2,382,447,165,122,95,65,521,63,85,82,false
+2026-08-26 20:54:17,2026-08-27 21:45:24,UTC-04:00,2026-08-26 20:54:17,2026-08-27 04:19:47,79,16.7,402,445,160,135,107,43,528,60,90,65,false
+2026-08-25 22:03:45,2026-08-26 20:54:17,UTC-04:00,2026-08-25 22:03:45,2026-08-26 04:49:45,82,16.0,368,406,174,92,102,38,488,29,90,74,false
+2026-08-24 22:44:30,2026-08-25 22:03:45,UTC-04:00,2026-08-24 22:44:30,2026-08-25 06:29:51,86,16.3,408,465,154,117,137,57,467,8,87,85,false
+2026-08-23 21:45:09,2026-08-24 22:44:30,UTC-04:00,2026-08-23 21:45:09,2026-08-24 06:09:03,86,16.3,439,503,235,137,67,64,457,0,87,82,false
+2026-08-22 22:11:54,2026-08-23 21:45:09,UTC-04:00,2026-08-22 22:11:54,2026-08-23 07:20:28,95,15.9,496,548,235,136,125,52,481,2,90,84,false
+2026-08-21 22:33:57,2026-08-22 22:11:54,UTC-04:00,2026-08-21 22:33:57,2026-08-22 06:59:52,91,16.0,454,505,247,113,94,51,458,2,89,80,false
+2026-08-20 21:33:12,2026-08-21 22:33:57,UTC-04:00,2026-08-20 21:33:12,2026-08-21 06:32:58,93,16.2,485,539,205,132,148,54,490,35,89,82,false
+2026-08-19 22:22:40,2026-08-20 21:33:12,UTC-04:00,2026-08-19 22:22:40,2026-08-20 06:57:00,81,15.8,443,514,200,142,101,71,513,36,86,75,false
+2026-08-18 21:22:02,2026-08-19 22:22:40,UTC-04:00,2026-08-18 21:22:02,2026-08-19 04:27:21,82,16.3,383,425,181,129,73,42,457,0,90,70,false
+2026-08-17 21:24:27,2026-08-18 21:22:02,UTC-04:00,2026-08-17 21:24:27,2026-08-18 06:30:05,93,16.7,511,545,255,148,108,34,506,50,94,82,false
+2026-08-16 22:26:37,2026-08-17 21:24:27,UTC-04:00,2026-08-16 22:26:37,2026-08-17 06:28:01,86,15.9,453,481,189,142,122,28,532,57,94,82,false
+2026-08-15 23:30:35,2026-08-16 22:26:37,UTC-04:00,2026-08-15 23:30:35,2026-08-16 06:29:09,80,16.6,389,418,152,122,115,29,504,26,93,68,false
+2026-08-14 21:55:03,2026-08-15 23:30:35,UTC-04:00,2026-08-14 21:55:03,2026-08-15 05:22:59,89,16.1,413,447,178,150,85,34,454,0,92,82,false
+2026-08-13 20:59:31,2026-08-14 21:55:03,UTC-04:00,2026-08-13 20:59:31,2026-08-14 06:49:10,90,16.0,536,589,236,160,140,53,523,49,90,78,false
+2026-08-12 21:46:59,2026-08-13 20:59:31,UTC-04:00,2026-08-12 21:46:59,2026-08-13 05:28:36,85,16.2,435,461,192,151,92,26,512,32,94,78,false
+2026-08-11 21:13:57,2026-08-12 21:46:59,UTC-04:00,2026-08-11 21:13:57,2026-08-12 04:49:26,81,16.1,424,455,210,146,68,31,476,12,93,61,false
+2026-08-10 21:09:01,2026-08-11 21:13:57,UTC-04:00,2026-08-10 21:09:01,2026-08-11 07:14:01,74,16.6,472,605,255,127,90,133,497,25,78,62,false
+2026-08-09 22:29:32,2026-08-10 21:09:01,UTC-04:00,2026-08-09 22:29:32,2026-08-10 06:33:33,82,15.9,446,484,150,151,145,38,496,42,92,66,false
+2026-08-08 22:21:26,2026-08-09 22:29:32,UTC-04:00,2026-08-08 22:21:26,2026-08-09 06:15:57,77,15.9,428,474,156,152,120,46,513,59,90,48,false
+2026-08-08 02:34:25,2026-08-08 22:21:26,UTC-04:00,2026-08-08 02:34:25,2026-08-08 09:26:59,67,16.9,371,412,174,135,62,41,491,35,91,48,false
+2026-08-06 23:40:00,2026-08-08 02:34:25,UTC-04:00,2026-08-06 23:40:00,2026-08-07 07:03:01,86,16.0,394,443,156,109,129,49,465,11,89,83,false
+2026-08-05 23:36:55,2026-08-06 23:40:00,UTC-04:00,2026-08-05 23:36:55,2026-08-06 07:40:51,89,15.9,438,483,234,88,116,45,456,0,90,78,false
+2026-08-04 22:54:46,2026-08-05 23:36:55,UTC-04:00,2026-08-04 22:54:46,2026-08-05 08:30:01,89,15.9,528,575,228,155,145,47,500,33,91,75,false
+2026-08-03 22:57:35,2026-08-04 22:54:46,UTC-04:00,2026-08-03 22:57:35,2026-08-04 06:26:03,90,16.2,437,448,237,86,114,11,489,34,97,85,false
+2026-08-02 22:32:02,2026-08-03 22:57:35,UTC-04:00,2026-08-02 22:32:02,2026-08-03 06:16:07,83,17.2,405,464,178,138,89,59,475,18,87,78,false
+2026-08-01 23:00:31,2026-08-02 22:32:02,UTC-04:00,2026-08-01 23:00:31,2026-08-02 06:57:31,82,17.5,453,477,199,113,141,24,490,35,94,68,false
+2026-07-31 22:04:58,2026-08-01 23:00:31,UTC-04:00,2026-07-31 22:04:58,2026-08-01 07:44:29,78,16.2,500,579,220,160,120,79,571,68,86,63,false
+2026-07-30 21:33:25,2026-07-31 22:04:58,UTC-04:00,2026-07-30 21:33:25,2026-07-31 04:00:07,82,16.6,368,386,184,115,69,18,504,36,95,77,false
+2026-07-29 21:47:25,2026-07-30 21:33:25,UTC-04:00,2026-07-29 21:47:25,2026-07-30 05:21:28,90,16.1,438,454,185,124,129,16,494,25,96,86,false
+2026-07-28 21:33:23,2026-07-29 21:47:25,UTC-04:00,2026-07-28 21:33:23,2026-07-29 05:27:50,88,16.2,419,474,184,112,123,55,458,0,88,82,false
+2026-07-27 20:50:54,2026-07-28 21:33:23,UTC-04:00,2026-07-27 20:50:54,2026-07-28 06:30:25,97,16.3,532,579,303,105,124,47,470,12,91,87,false
+2026-07-26 21:05:22,2026-07-27 20:50:54,UTC-04:00,2026-07-26 21:05:22,2026-07-27 06:34:05,91,16.5,510,568,245,149,116,58,530,65,89,82,false
+2026-07-25 21:19:20,2026-07-26 21:05:22,UTC-04:00,2026-07-25 21:19:20,2026-07-26 05:56:51,82,16.7,444,517,231,105,108,73,546,92,85,83,false
+2026-07-24 22:53:54,2026-07-25 21:19:20,UTC-04:00,2026-07-24 22:53:54,2026-07-25 06:08:24,80,16.4,420,434,220,97,103,14,564,83,96,70,false
+2026-07-23 21:03:43,2026-07-24 22:53:54,UTC-04:00,2026-07-23 21:03:43,2026-07-24 05:44:44,84,16.7,495,521,261,105,129,26,626,127,95,81,false
+2026-07-22 21:28:25,2026-07-23 21:03:43,UTC-04:00,2026-07-22 21:28:25,2026-07-23 04:29:46,47,16.1,292,421,149,60,83,129,578,97,69,85,false
+2026-07-21 21:32:53,2026-07-22 21:28:25,UTC-04:00,2026-07-21 21:32:53,2026-07-22 05:00:05,83,16.7,404,447,165,116,123,43,555,61,90,80,false
+2026-07-20 21:30:45,2026-07-21 21:32:53,UTC-04:00,2026-07-20 21:30:45,2026-07-21 04:43:14,80,16.5,378,432,190,108,80,54,474,11,87,69,false
+2026-07-19 22:18:42,2026-07-20 21:30:45,UTC-04:00,2026-07-19 22:18:42,2026-07-20 06:33:53,91,16.2,456,495,212,114,130,39,473,18,92,82,false
+2026-07-18 21:48:35,2026-07-19 22:18:42,UTC-04:00,2026-07-18 21:48:35,2026-07-19 07:26:41,84,15.9,524,578,222,142,160,54,552,95,90,68,false
+2026-07-17 22:41:30,2026-07-18 21:48:35,UTC-04:00,2026-07-17 22:41:30,2026-07-18 06:30:31,80,15.8,454,469,158,151,145,15,602,127,96,69,false
+2026-07-16 22:08:00,2026-07-17 22:41:30,UTC-04:00,2026-07-16 22:08:00,2026-07-17 03:34:31,54,16.3,281,326,134,100,47,45,585,109,86,72,false
+2026-07-15 21:30:11,2026-07-16 22:08:00,UTC-04:00,2026-07-15 21:30:11,2026-07-16 05:25:06,80,16.1,411,474,166,146,99,63,581,84,86,80,false
+2026-07-14 21:31:41,2026-07-15 21:30:11,UTC-04:00,2026-07-14 21:31:41,2026-07-15 04:40:03,81,15.9,397,428,212,111,74,31,529,67,92,71,false
+2026-07-13 21:56:08,2026-07-14 21:31:41,UTC-04:00,2026-07-13 21:56:08,2026-07-14 06:19:28,82,15.9,458,503,230,124,104,45,563,72,91,71,false
+2026-07-12 21:06:31,2026-07-13 21:56:08,UTC-04:00,2026-07-12 21:06:31,2026-07-13 04:43:24,78,16.1,425,456,189,140,96,31,538,63,93,56,false
+2026-07-11 23:19:57,2026-07-12 21:06:31,UTC-04:00,2026-07-11 23:19:57,2026-07-12 07:57:11,79,16.2,459,517,186,145,128,58,558,93,88,62,false
+2026-07-10 22:43:25,2026-07-11 23:19:57,UTC-04:00,2026-07-10 22:43:25,2026-07-11 06:59:40,79,16.0,449,496,213,116,120,47,595,126,90,65,false
+2026-07-09 21:59:25,2026-07-10 22:43:25,UTC-04:00,2026-07-10 15:40:00,2026-07-10 16:00:00,28,17.6,18,20,8,10,0,2,613,126,97,,true
+2026-07-09 21:59:25,2026-07-10 22:43:25,UTC-04:00,2026-07-09 21:59:25,2026-07-10 04:49:06,80,15.6,368,409,172,98,98,41,565,81,89,83,false
+2026-07-08 21:28:52,2026-07-09 21:59:25,UTC-04:00,2026-07-08 21:28:52,2026-07-09 05:26:07,82,15.8,427,477,224,98,105,50,554,75,89,74,false
+2026-07-07 21:51:32,2026-07-08 21:28:52,UTC-04:00,2026-07-07 21:51:32,2026-07-08 04:45:05,79,16.2,389,413,182,104,103,24,506,45,94,61,false
+2026-07-06 21:20:15,2026-07-07 21:51:32,UTC-04:00,2026-07-06 21:20:15,2026-07-07 06:58:10,80,16.1,523,577,250,131,142,54,594,89,90,59,false
+2026-07-05 21:00:45,2026-07-06 21:20:15,UTC-04:00,2026-07-05 21:00:45,2026-07-06 04:18:16,73,16.8,406,437,240,72,94,31,545,72,92,38,false
+2026-07-05 01:48:11,2026-07-05 21:00:45,UTC-04:00,2026-07-05 01:48:11,2026-07-05 09:11:09,72,16.4,414,442,164,109,141,28,527,66,93,27,false
+2026-07-03 21:09:08,2026-07-05 01:48:11,UTC-04:00,2026-07-03 21:09:08,2026-07-04 06:51:53,80,16.3,519,582,280,93,146,63,622,127,89,66,false
+2026-07-02 21:18:35,2026-07-03 21:09:08,UTC-04:00,2026-07-02 21:18:35,2026-07-03 03:14:44,20,16.8,226,356,143,26,57,130,617,120,63,68,false
+2026-07-01 21:13:03,2026-07-02 21:18:35,UTC-04:00,2026-07-01 21:13:03,2026-07-02 05:29:36,77,16.5,419,496,212,120,87,77,606,121,84,76,false
+2026-06-30 23:01:44,2026-07-01 21:13:03,UTC-04:00,2026-06-30 23:01:44,2026-07-01 04:39:47,69,16.8,304,338,142,106,56,34,546,83,90,72,false
+2026-06-29 22:30:32,2026-06-30 23:01:44,UTC-04:00,2026-06-29 22:30:32,2026-06-30 06:29:33,80,16.8,425,479,217,89,119,54,554,94,88,71,false
+2026-06-28 21:33:30,2026-06-29 22:30:32,UTC-04:00,2026-06-28 21:33:30,2026-06-29 04:39:14,67,17.5,329,425,161,107,61,96,518,0,77,73,false
+2026-06-27 20:59:58,2026-06-28 21:33:30,UTC-04:00,2026-06-27 20:59:58,2026-06-28 06:22:16,84,16.8,495,562,275,98,122,67,494,35,88,72,false
+2026-06-26 21:18:13,2026-06-27 20:59:58,UTC-04:00,2026-06-26 21:18:13,2026-06-27 06:49:56,80,17.0,507,571,252,124,131,64,562,127,88,59,false
+2026-06-25 20:49:41,2026-06-26 21:18:13,UTC-04:00,2026-06-26 03:37:41,2026-06-26 04:37:12,25,15.2,54,59,28,26,0,5,582,127,91,,true
+2026-06-25 20:49:41,2026-06-26 21:18:13,UTC-04:00,2026-06-25 20:49:41,2026-06-26 01:08:41,41,17.2,236,259,83,104,49,23,594,103,91,61,false
+2026-06-24 21:10:31,2026-06-25 20:49:41,UTC-04:00,2026-06-24 21:10:31,2026-06-25 04:39:49,83,16.3,410,449,163,133,114,39,571,75,91,80,false
+2026-06-23 20:19:59,2026-06-24 21:10:31,UTC-04:00,2026-06-23 20:19:59,2026-06-24 04:35:15,81,16.1,459,495,230,85,144,36,577,108,92,70,false
+2026-06-22 20:36:25,2026-06-23 20:19:59,UTC-04:00,2026-06-22 20:36:25,2026-06-23 03:18:46,72,16.4,357,402,155,116,86,45,574,89,88,63,false
+2026-06-21 20:23:23,2026-06-22 20:36:25,UTC-04:00,2026-06-21 20:23:23,2026-06-22 03:14:55,72,17.4,388,411,187,132,69,23,566,49,94,39,false
+2026-06-20 21:42:19,2026-06-21 20:23:23,UTC-04:00,2026-06-20 21:42:19,2026-06-21 06:30:58,71,16.3,466,528,231,123,112,62,565,109,88,16,false
+2026-06-19 23:17:29,2026-06-21 03:42:19,UTC+02:00,2026-06-19 23:17:29,2026-06-20 05:55:21,82,16.7,377,397,213,80,84,20,547,90,94,83,false
+2026-06-18 22:59:37,2026-06-19 23:17:29,UTC+02:00,2026-06-18 22:59:37,2026-06-19 07:20:22,85,16.7,462,500,191,138,133,38,602,85,92,83,false
+2026-06-17 22:25:03,2026-06-18 22:59:37,UTC+02:00,2026-06-17 22:25:03,2026-06-18 05:42:32,82,17.0,392,437,140,164,88,45,526,70,89,75,false
+2026-06-16 23:17:37,2026-06-17 22:25:03,UTC+02:00,2026-06-16 23:17:37,2026-06-17 07:29:38,83,17.3,461,492,192,140,129,31,571,57,93,75,false
+2026-06-15 23:00:37,2026-06-16 23:17:37,UTC+02:00,2026-06-15 23:00:37,2026-06-16 06:06:00,80,16.8,381,425,199,84,98,44,470,10,89,63,false
+2026-06-14 22:52:27,2026-06-15 23:00:37,UTC+02:00,2026-06-14 22:52:27,2026-06-15 07:31:57,79,16.9,480,519,255,98,127,39,497,88,92,43,false
+2026-06-13 22:47:25,2026-06-14 22:52:27,UTC+02:00,2026-06-14 16:50:54,2026-06-14 17:59:55,20,17.1,67,69,25,42,0,2,564,88,97,,true
+2026-06-13 22:47:25,2026-06-14 22:52:27,UTC+02:00,2026-06-13 22:47:25,2026-06-14 05:25:17,59,16.4,332,397,156,104,72,65,509,0,83,29,false
+2026-06-12 22:17:27,2026-06-13 22:47:25,UTC+02:00,2026-06-12 22:17:27,2026-06-13 06:59:44,76,16.6,465,522,268,97,100,57,370,72,89,8,false
+2026-06-10 20:44:38,2026-06-12 16:17:27,UTC-04:00,2026-06-12 09:20:03,2026-06-12 12:26:34,23,16.2,169,186,55,84,30,17,536,72,90,,true
+2026-06-10 20:44:38,2026-06-12 16:17:27,UTC-04:00,2026-06-10 20:44:38,2026-06-11 05:40:53,84,16.8,469,536,264,105,100,67,581,77,87,86,false
+2026-06-09 20:58:05,2026-06-10 20:44:38,UTC-04:00,2026-06-09 20:58:05,2026-06-10 04:40:35,82,15.9,409,462,216,105,88,53,529,51,88,78,false
+2026-06-08 20:48:32,2026-06-09 20:58:05,UTC-04:00,2026-06-08 20:48:32,2026-06-09 06:29:33,81,16.3,510,581,241,145,124,71,590,90,87,68,false
+2026-06-07 20:45:00,2026-06-08 20:48:32,UTC-04:00,2026-06-07 20:45:00,2026-06-08 04:27:07,78,16.5,420,462,240,120,60,42,561,93,91,58,false
+2026-06-06 21:42:00,2026-06-07 20:45:00,UTC-04:00,2026-06-06 21:42:00,2026-06-07 06:01:36,77,16.2,440,499,193,118,129,59,584,127,88,60,false
+2026-06-05 21:56:30,2026-06-06 21:42:00,UTC-04:00,2026-06-05 21:56:30,2026-06-06 01:30:56,33,16.8,191,214,64,86,41,23,612,117,89,75,false
+2026-06-04 22:59:23,2026-06-05 21:56:30,UTC-04:00,2026-06-04 22:59:23,2026-06-05 07:21:25,79,16.5,436,502,201,122,113,66,619,108,86,77,false
+2026-06-04 00:41:51,2026-06-04 22:59:23,UTC-04:00,2026-06-04 00:41:51,2026-06-04 06:09:39,67,16.8,288,327,128,90,70,39,504,22,87,66,false
+2026-06-02 22:29:05,2026-06-04 00:41:51,UTC-04:00,2026-06-02 22:29:05,2026-06-03 07:25:36,86,15.8,469,536,175,147,147,67,504,44,87,81,false
+2026-06-01 21:38:52,2026-06-02 22:29:05,UTC-04:00,2026-06-01 21:38:52,2026-06-02 06:21:42,83,16.0,467,522,218,134,115,55,537,68,89,74,false
+2026-05-31 22:54:31,2026-06-01 21:38:52,UTC-04:00,2026-05-31 22:54:31,2026-06-01 06:47:26,83,16.6,436,472,190,138,108,36,544,69,92,76,false
+2026-05-30 22:58:28,2026-05-31 22:54:31,UTC-04:00,2026-05-30 22:58:28,2026-05-31 06:31:06,80,15.8,423,452,157,136,130,29,531,74,93,64,false
+2026-05-30 00:12:57,2026-05-30 22:58:28,UTC-04:00,2026-05-30 00:12:57,2026-05-30 07:48:58,74,15.5,421,456,144,157,120,35,571,99,92,42,false
+2026-05-28 21:08:25,2026-05-30 00:12:57,UTC-04:00,2026-05-28 21:08:25,2026-05-29 03:12:25,74,16.6,336,364,143,118,75,28,535,66,92,67,false
+2026-05-27 21:26:21,2026-05-28 21:08:25,UTC-04:00,2026-05-27 21:26:21,2026-05-28 06:51:22,76,16.2,458,565,237,121,100,107,591,110,81,76,false
+2026-05-26 21:30:20,2026-05-27 21:26:21,UTC-04:00,2026-05-26 21:30:20,2026-05-27 04:35:51,75,16.8,366,425,186,110,70,59,587,114,86,86,false
+2026-05-25 21:41:48,2026-05-26 21:30:20,UTC-04:00,2026-05-25 21:41:48,2026-05-26 04:47:43,82,16.5,387,425,192,97,98,38,566,58,91,83,false
+2026-05-24 21:54:43,2026-05-25 21:41:48,UTC-04:00,2026-05-24 21:54:43,2026-05-25 05:29:10,85,16.3,411,454,181,122,108,43,502,35,90,80,false
+2026-05-23 21:29:47,2026-05-24 21:54:43,UTC-04:00,2026-05-23 21:29:47,2026-05-24 06:55:02,83,16.0,523,565,217,123,183,42,579,122,92,70,false
+2026-05-22 22:05:38,2026-05-23 21:29:47,UTC-04:00,2026-05-22 22:05:38,2026-05-23 03:57:55,70,15.8,320,352,113,95,112,32,564,68,91,75,false
+2026-05-21 21:16:32,2026-05-22 22:05:38,UTC-04:00,2026-05-21 21:16:32,2026-05-22 04:36:53,83,15.8,394,440,194,111,89,46,501,42,89,75,false
+2026-05-20 21:52:39,2026-05-21 21:16:32,UTC-04:00,2026-05-20 21:52:39,2026-05-21 07:06:52,82,16.0,473,554,229,118,126,81,540,45,85,79,false
+2026-05-19 21:19:58,2026-05-20 21:52:39,UTC-04:00,2026-05-19 21:19:58,2026-05-20 04:29:59,79,16.1,395,430,195,124,76,35,485,15,91,60,false
+2026-05-18 21:44:48,2026-05-19 21:19:58,UTC-04:00,2026-05-18 21:44:48,2026-05-19 07:04:48,80,16.2,456,560,197,129,130,104,487,27,81,76,false
+2026-05-17 21:48:46,2026-05-18 21:44:48,UTC-04:00,2026-05-17 21:48:46,2026-05-18 06:29:48,83,16.3,465,521,218,141,106,56,508,51,89,69,false
+2026-05-16 23:22:14,2026-05-17 21:48:46,UTC-04:00,2026-05-16 23:22:14,2026-05-17 06:34:13,80,15.6,393,431,181,100,112,38,497,41,91,63,false
+2026-05-16 00:16:16,2026-05-16 23:22:14,UTC-04:00,2026-05-16 00:16:16,2026-05-16 08:16:17,76,15.6,454,480,205,125,124,26,538,81,94,41,false
+2026-05-14 21:19:20,2026-05-16 00:16:16,UTC-04:00,2026-05-14 21:19:20,2026-05-15 04:09:46,82,16.3,376,410,181,121,74,34,538,59,91,81,false
+2026-05-13 21:55:45,2026-05-14 21:19:20,UTC-04:00,2026-05-13 21:55:45,2026-05-14 05:15:50,84,15.7,420,440,187,111,122,20,539,65,95,81,false
+2026-05-12 21:54:01,2026-05-13 21:55:45,UTC-04:00,2026-05-12 21:54:01,2026-05-13 03:56:32,80,16.2,339,362,162,102,75,23,470,13,93,70,false
+2026-05-11 21:47:06,2026-05-12 21:54:01,UTC-04:00,2026-05-11 21:47:06,2026-05-12 06:49:13,89,16.2,500,542,221,165,114,42,521,37,92,79,false
+2026-05-10 21:22:14,2026-05-11 21:47:06,UTC-04:00,2026-05-10 21:22:14,2026-05-11 04:39:50,84,16.3,412,437,185,120,107,25,486,0,94,74,false
+2026-05-09 21:02:55,2026-05-10 21:22:14,UTC-04:00,2026-05-09 21:02:55,2026-05-10 07:13:19,90,15.8,547,610,309,107,131,63,476,9,89,77,false
+2026-05-08 21:57:44,2026-05-09 21:02:55,UTC-04:00,2026-05-08 21:57:44,2026-05-09 07:11:26,86,15.9,512,553,224,130,158,41,526,56,92,71,false
+2026-05-07 21:04:42,2026-05-08 21:57:44,UTC-04:00,2026-05-07 21:04:42,2026-05-08 04:42:43,82,16.1,399,458,177,131,91,59,512,53,88,80,false
+2026-05-06 21:53:46,2026-05-07 21:04:42,UTC-04:00,2026-05-06 21:53:46,2026-05-07 04:57:26,83,16.3,390,423,167,130,93,33,496,25,92,78,false
+2026-05-05 21:25:27,2026-05-06 21:53:46,UTC-04:00,2026-05-05 21:25:27,2026-05-06 06:30:35,85,16.5,474,545,248,119,107,71,513,45,87,81,false
+2026-05-04 21:46:43,2026-05-05 21:25:27,UTC-04:00,2026-05-04 21:46:43,2026-05-05 06:23:40,84,16.2,484,516,228,111,145,32,556,54,93,74,false
+2026-05-03 20:57:07,2026-05-04 21:46:43,UTC-04:00,2026-05-03 20:57:07,2026-05-04 04:39:38,79,16.6,423,462,164,116,143,39,533,61,91,64,false
+2026-05-02 23:29:33,2026-05-03 20:57:07,UTC-04:00,2026-05-02 23:29:33,2026-05-03 06:38:04,79,16.6,413,428,172,94,147,15,537,82,96,63,false
+2026-05-01 22:42:15,2026-05-02 23:29:33,UTC-04:00,2026-05-01 22:42:15,2026-05-02 05:41:48,80,16.5,399,419,143,123,133,20,563,90,95,71,false
+2026-04-30 20:41:42,2026-05-01 22:42:15,UTC-04:00,2026-04-30 20:41:42,2026-05-01 04:43:42,84,16.7,436,482,219,119,98,46,577,91,90,84,false
+2026-04-29 21:24:42,2026-04-30 20:41:42,UTC-04:00,2026-04-29 21:24:42,2026-04-30 04:35:04,86,16.3,405,430,174,130,101,25,547,65,94,88,false
+2026-04-28 21:30:17,2026-04-29 21:24:42,UTC-04:00,2026-04-28 21:30:17,2026-04-29 04:39:01,85,16.8,400,428,220,81,99,28,502,25,93,82,false
+2026-04-27 21:45:27,2026-04-28 21:30:17,UTC-04:00,2026-04-27 21:45:27,2026-04-28 06:04:23,89,16.6,461,498,252,99,110,37,502,41,92,82,false
+2026-04-26 20:48:28,2026-04-27 21:45:27,UTC-04:00,2026-04-26 20:48:28,2026-04-27 04:24:36,84,16.9,432,456,190,126,116,24,497,34,94,74,false
+2026-04-25 21:54:26,2026-04-26 20:48:28,UTC-04:00,2026-04-25 21:54:26,2026-04-26 05:55:18,90,16.6,451,480,157,150,144,29,505,49,93,85,false
+2026-04-24 21:21:23,2026-04-25 21:54:26,UTC-04:00,2026-04-24 21:21:23,2026-04-25 06:29:11,85,16.8,522,547,269,118,135,25,598,124,95,77,false
+2026-04-23 21:55:22,2026-04-24 21:21:23,UTC-04:00,2026-04-23 21:55:22,2026-04-24 04:44:52,82,16.3,369,409,88,161,120,40,563,85,90,87,false
+2026-04-22 21:10:32,2026-04-23 21:55:22,UTC-04:00,2026-04-22 21:10:32,2026-04-23 05:12:14,85,16.5,451,481,170,154,127,30,584,117,93,84,false
+2026-04-21 21:42:00,2026-04-22 21:10:32,UTC-04:00,2026-04-21 21:42:00,2026-04-22 04:34:42,78,16.9,362,412,150,145,67,50,545,88,87,78,false
+2026-04-20 21:25:27,2026-04-21 21:42:00,UTC-04:00,2026-04-20 21:25:27,2026-04-21 05:17:37,81,16.8,425,472,191,144,90,47,563,70,90,71,false
+2026-04-19 19:23:56,2026-04-20 21:25:27,UTC-04:00,2026-04-19 19:23:56,2026-04-20 04:57:25,67,17.7,454,573,208,147,99,119,564,96,79,51,false
+2026-04-18 22:26:56,2026-04-19 19:23:56,UTC-04:00,2026-04-18 22:26:56,2026-04-19 07:06:56,30,15.7,396,520,226,67,103,124,589,127,76,60,false
+2026-04-17 21:57:29,2026-04-18 22:26:56,UTC-04:00,2026-04-17 21:57:29,2026-04-18 03:25:30,58,15.2,281,328,94,125,62,47,548,52,85,68,false
+2026-04-16 20:19:47,2026-04-17 21:57:29,UTC-04:00,2026-04-16 20:19:47,2026-04-17 04:20:48,80,15.3,439,481,160,151,128,42,521,64,91,62,false
+2026-04-15 22:01:09,2026-04-16 20:19:47,UTC-04:00,2026-04-15 22:01:09,2026-04-16 07:13:39,76,16.0,460,552,167,147,146,92,560,87,83,64,false
+2026-04-14 20:45:37,2026-04-15 22:01:09,UTC-04:00,2026-04-14 20:45:37,2026-04-15 04:36:40,79,16.3,438,471,191,113,134,33,575,97,93,64,false
+2026-04-13 21:33:00,2026-04-14 20:45:37,UTC-04:00,2026-04-13 21:33:00,2026-04-14 05:07:57,78,16.0,425,454,176,140,109,29,577,98,93,58,false
+2026-04-12 21:33:58,2026-04-13 21:33:00,UTC-04:00,2026-04-12 21:33:58,2026-04-13 04:44:46,76,15.7,405,430,189,127,89,25,559,104,94,49,false
+2026-04-11 23:58:57,2026-04-12 20:33:58,UTC-05:00,2026-04-11 23:58:57,2026-04-12 06:21:32,71,16.3,356,382,154,88,114,26,564,104,93,51,false
+2026-04-11 00:21:56,2026-04-11 23:58:57,UTC-05:00,2026-04-11 00:21:56,2026-04-11 06:57:22,65,16.3,383,395,159,139,85,12,592,127,97,30,false
+2026-04-09 21:47:25,2026-04-11 01:21:56,UTC-04:00,2026-04-09 21:47:25,2026-04-10 02:57:27,64,16.2,296,310,105,113,78,14,553,85,95,71,false
+2026-04-08 21:38:10,2026-04-09 21:47:25,UTC-04:00,2026-04-08 21:38:10,2026-04-09 03:07:35,71,15.8,292,329,132,116,44,37,464,0,89,55,false
+2026-04-07 20:50:17,2026-04-08 21:38:10,UTC-04:00,2026-04-07 20:50:17,2026-04-08 06:03:18,84,16.2,520,553,247,132,141,33,517,59,94,63,false
+2026-04-06 22:02:11,2026-04-07 20:50:17,UTC-04:00,2026-04-06 22:02:11,2026-04-07 07:08:42,75,16.3,451,546,250,109,92,95,570,70,82,63,false
+2026-04-05 21:35:41,2026-04-06 22:02:11,UTC-04:00,2026-04-05 21:35:41,2026-04-06 04:38:39,75,16.8,399,422,164,118,117,23,541,85,94,44,false
+2026-04-05 02:21:00,2026-04-05 21:35:41,UTC-04:00,2026-04-05 02:21:00,2026-04-05 08:21:27,72,17.2,352,360,170,108,74,8,524,68,97,43,false
+2026-04-03 22:36:07,2026-04-05 02:21:00,UTC-04:00,2026-04-03 22:36:07,2026-04-04 06:19:34,85,16.9,430,463,193,102,135,33,536,77,92,81,false
+2026-04-02 23:25:50,2026-04-03 22:36:07,UTC-04:00,2026-04-02 23:25:50,2026-04-03 07:06:18,80,16.3,435,460,215,108,112,25,555,97,94,65,false
+2026-04-01 22:23:36,2026-04-02 23:25:50,UTC-04:00,2026-04-01 22:23:36,2026-04-02 04:26:09,80,16.0,341,362,152,106,83,21,493,28,94,73,false
+2026-03-31 21:59:39,2026-04-01 22:23:36,UTC-04:00,2026-03-31 21:59:39,2026-04-01 06:19:57,86,16.1,473,500,229,124,120,27,517,56,94,77,false
+2026-03-30 21:11:11,2026-03-31 21:59:39,UTC-04:00,2026-03-30 21:11:11,2026-03-31 05:59:35,82,16.3,483,528,202,152,129,45,571,79,91,67,false
+2026-03-29 22:02:23,2026-03-30 21:11:11,UTC-04:00,2026-03-29 22:02:23,2026-03-30 04:39:46,78,15.9,370,397,179,106,85,27,493,35,93,61,false
+2026-03-29 00:11:21,2026-03-29 22:02:23,UTC-04:00,2026-03-29 00:11:21,2026-03-29 08:12:06,77,15.9,456,480,212,106,138,24,528,62,95,46,false
+2026-03-27 21:00:46,2026-03-29 00:11:21,UTC-04:00,2026-03-27 21:00:46,2026-03-28 06:54:00,81,16.1,524,593,290,121,113,69,621,127,88,72,false
+2026-03-26 21:30:31,2026-03-27 21:00:46,UTC-04:00,2026-03-26 21:30:31,2026-03-27 04:38:24,46,16.0,279,427,167,26,86,148,547,74,65,83,false
+2026-03-25 21:45:57,2026-03-26 21:30:31,UTC-04:00,2026-03-25 21:45:57,2026-03-26 05:12:08,84,15.5,417,446,194,125,98,29,533,66,93,82,false
+2026-03-24 22:04:55,2026-03-25 21:45:57,UTC-04:00,2026-03-24 22:04:55,2026-03-25 06:27:38,83,15.9,448,502,201,134,113,54,552,55,89,79,false
+2026-03-23 21:38:31,2026-03-24 22:04:55,UTC-04:00,2026-03-23 21:38:31,2026-03-24 04:38:31,81,16.1,398,419,185,120,93,21,509,23,94,71,false
+2026-03-22 22:00:05,2026-03-23 21:38:31,UTC-04:00,2026-03-22 22:00:05,2026-03-23 06:59:07,85,16.1,490,539,255,109,126,49,525,60,90,74,false
+2026-03-21 21:34:21,2026-03-22 21:00:05,UTC-05:00,2026-03-21 21:34:21,2026-03-22 03:42:44,79,16.1,333,368,133,114,86,35,454,0,90,65,false
+2026-03-20 21:57:26,2026-03-21 21:34:21,UTC-05:00,2026-03-20 21:57:26,2026-03-21 06:54:01,84,16.2,494,536,234,110,150,42,455,0,92,65,false
+2026-03-19 20:20:46,2026-03-20 21:57:26,UTC-05:00,2026-03-19 20:20:46,2026-03-20 05:45:57,92,16.6,519,565,217,145,157,46,490,35,92,81,false
+2026-03-18 21:34:17,2026-03-19 21:20:46,UTC-04:00,2026-03-18 21:34:17,2026-03-19 05:24:42,87,16.4,446,470,193,154,99,24,501,40,94,81,false
+2026-03-17 21:16:06,2026-03-18 21:34:17,UTC-04:00,2026-03-17 21:16:06,2026-03-18 07:28:07,76,16.1,509,612,212,160,137,103,590,107,83,66,false
+2026-03-16 21:51:31,2026-03-17 21:16:06,UTC-04:00,2026-03-16 21:51:31,2026-03-17 05:27:51,83,16.6,423,456,146,155,122,33,590,89,92,81,false
+2026-03-15 22:17:14,2026-03-16 21:51:31,UTC-04:00,2026-03-15 22:17:14,2026-03-16 04:44:45,81,16.4,360,387,113,150,97,27,539,65,93,81,false
+2026-03-14 23:07:10,2026-03-15 22:17:14,UTC-04:00,2026-03-14 23:07:10,2026-03-15 06:25:41,81,16.1,405,438,167,120,118,33,536,78,92,72,false
+2026-03-13 22:19:10,2026-03-14 23:07:10,UTC-04:00,2026-03-13 22:19:10,2026-03-14 05:52:41,82,16.1,424,453,146,142,136,29,580,84,93,79,false
+2026-03-12 21:41:38,2026-03-13 22:19:10,UTC-04:00,2026-03-12 21:41:38,2026-03-13 04:33:11,79,15.5,353,411,128,145,80,58,522,37,86,83,false
+2026-03-11 21:16:19,2026-03-12 21:41:38,UTC-04:00,2026-03-11 21:16:19,2026-03-12 04:42:46,83,16.0,406,446,190,122,94,40,481,23,91,73,false
+2026-03-10 21:38:49,2026-03-11 21:16:19,UTC-04:00,2026-03-10 21:38:49,2026-03-11 06:26:09,83,16.3,475,527,188,133,154,52,522,59,90,67,false
+2026-03-09 21:53:06,2026-03-10 21:38:49,UTC-04:00,2026-03-09 21:53:06,2026-03-10 05:15:15,77,16.6,390,442,155,140,95,52,509,8,88,58,false
+2026-03-08 20:01:38,2026-03-09 21:53:06,UTC-04:00,2026-03-08 20:01:38,2026-03-09 04:40:03,95,16.8,478,518,266,112,100,40,496,11,92,,false
+2026-03-07 23:58:45,2026-03-08 20:01:38,UTC-04:00,2026-03-07 23:58:45,2026-03-08 08:30:11,95,16.2,473,511,227,109,137,38,496,0,92,,false</script>
+<script>
+(() => {
+"use strict";
+const $ = id => document.getElementById(id);
+const clamp01 = v => Math.max(0, Math.min(1, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const TAU = Math.PI * 2, GOLDEN = Math.PI * (3 - Math.sqrt(5));
+
+/* ---------- data ---------- */
+function parseDate(s){
+  const m = /(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/.exec(s || "");
+  return m ? new Date(+m[1], m[2]-1, +m[3], +m[4], +m[5], +(m[6]||0)) : null;
+}
+function parseCSV(txt){
+  const lines = txt.trim().split(/\r?\n/);
+  const head = lines[0].split(",").map(s => s.trim().toLowerCase());
+  const idx = n => head.findIndex(h => h.startsWith(n));
+  const c = { onset:idx("sleep onset"), perf:idx("sleep performance"), resp:idx("respiratory"), asleep:idx("asleep duration"),
+    inbed:idx("in bed"), light:idx("light sleep"), deep:idx("deep"), rem:idx("rem"), awake:idx("awake duration"),
+    need:idx("sleep need"), debt:idx("sleep debt"), eff:idx("sleep efficiency"), cons:idx("sleep consistency"), nap:idx("nap") };
+  if (c.onset < 0 || c.asleep < 0 || c.deep < 0 || c.rem < 0 || c.light < 0)
+    throw new Error("This file is missing WHOOP sleep columns (Sleep onset, Asleep, Light, Deep, REM). Export sleeps.csv from the WHOOP app and try again.");
+  const out = [];
+  for (let i = 1; i < lines.length; i++){
+    const f = lines[i].split(",");
+    if (f.length < 6) continue;
+    const date = parseDate(f[c.onset]); if (!date) continue;
+    const num = (k, d = 0) => { const v = parseFloat(f[c[k]]); return isFinite(v) ? v : d; };
+    out.push({ date, perf:num("perf"), resp:num("resp", 16), asleep:num("asleep"), inbed:num("inbed"),
+      light:num("light"), deep:num("deep"), rem:num("rem"), awake:num("awake"), need:num("need"),
+      debt:num("debt"), eff:num("eff"), cons:num("cons", 70), nap: c.nap >= 0 && /true/i.test(f[c.nap] || "") });
+  }
+  out.sort((a, b) => a.date - b.date);
+  if (!out.length) throw new Error("No sleep rows found in that file.");
+  return out;
+}
+
+let ALL = parseCSV($("csv").textContent);
+
+/* ---------- palettes ---------- */
+const PALETTES = {
+  ember: { name:"Ember", light:"#F7B538", deep:"#E5132D", rem:"#F48BA1", awake:"#FFE3B0", accent:"#FF6B1A" },
+  burst: { name:"Burst", light:"#F2A400", deep:"#D3261E", rem:"#2E9FD6", awake:"#C2368A", accent:"#E8650F" },
+  tide:  { name:"Tide",  light:"#86CBE8", deep:"#2B79C9", rem:"#EE4C9C", awake:"#C7B4F0", accent:"#F3F7FA" },
+  riso:  { name:"Riso",  light:"#FFD400", deep:"#0078BF", rem:"#FF48B0", awake:"#00A95C", accent:"#FF6C2F" },
+  mono:  { name:"Mono",  light:null, deep:null, rem:null, awake:null, accent:null }
+};
+const GROUNDS = { night:{ bg:"#07091A", fg:"#F1EFEA" }, paper:{ bg:"#F6F4EF", fg:"#1A1918" } };
+function palette(P){
+  const g = GROUNDS[P.bg];
+  if (P.palette === "mono"){
+    return P.bg === "night"
+      ? { light:"#D9D9D9", deep:"#FFFFFF", rem:"#9C9C9C", awake:"#5E5E5E", accent:"#FFFFFF", ...g }
+      : { light:"#3A3A3A", deep:"#111111", rem:"#7A7A7A", awake:"#B5B5B5", accent:"#000000", ...g };
+  }
+  return { ...PALETTES[P.palette], ...g };
+}
+function rgb(hex){ const n = parseInt(hex.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
+function rgba(hex, a){ const [r,g,b] = rgb(hex); return `rgba(${r},${g},${b},${clamp01(a).toFixed(3)})`; }
+function shade(hex, t){ // t<0 darker, t>0 lighter
+  const [r,g,b] = rgb(hex), k = t < 0 ? 0 : 255, a = Math.abs(t);
+  return "#" + [r,g,b].map(v => Math.round(lerp(v, k, a)).toString(16).padStart(2,"0")).join("");
+}
+
+/* ---------- randomness ---------- */
+function mulberry32(a){ return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a);
+  t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function makeNoise(seed){
+  const r = mulberry32(seed * 7919 + 13), p = new Float32Array(512);
+  for (let i = 0; i < 512; i++) p[i] = r();
+  const h = (x, y) => { let n = (Math.imul(x, 374761393) + Math.imul(y, 668265263)) >>> 0;
+    n = Math.imul(n ^ (n >>> 13), 1274126177) >>> 0; return p[n & 511]; };
+  return (x, y) => { const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
+    const u = xf*xf*(3-2*xf), v = yf*yf*(3-2*yf);
+    const a = h(xi,yi), b = h(xi+1,yi), c = h(xi,yi+1), d = h(xi+1,yi+1);
+    return a + (b-a)*u + (c-a)*v + (a-b-c+d)*u*v; };
+}
+
+/* ---------- state ---------- */
+const P = { style:"corona", peaks:.55, contrast:.5, complexity:.55, twist:0, weight:.35,
+  nights:999, naps:false, labels:true, palette:"ember", bg:"night", seed:1207, tilt:false, mode:"both", dur:5 };
+const PRESETS = { corona:{palette:"ember", bg:"night"}, burst:{palette:"burst", bg:"paper"}, bloom:{palette:"tide", bg:"night"} };
+
+function selection(){
+  const pool = ALL.filter(d => P.naps || !d.nap);
+  const n = Math.max(1, Math.min(P.nights, pool.length));
+  return pool.slice(pool.length - n);
+}
+function statsOf(D){
+  const keys = ["perf","asleep","light","deep","rem","awake","cons","eff","debt","resp"], st = {};
+  for (const k of keys){ let lo = Infinity, hi = -Infinity;
+    for (const d of D){ if (d[k] < lo) lo = d[k]; if (d[k] > hi) hi = d[k]; }
+    st[k] = [lo, hi]; }
+  return st;
+}
+
+/* ---------- drawing ---------- */
+const STATIC = { grow:1, rot:0, twistAdd:0, peaksAdd:0 };
+let A = STATIC;
+/* t runs 0→1 over one loop. Grow reveals nights in date order, then holds; drift sways, spins and breathes. */
+function animAt(t, mode){
+  // grow builds for 40% of the loop, holds for 20%, then plays itself backwards so the loop is seamless
+  const gt = clamp01(t < .4 ? t / .4 : t < .6 ? 1 : (1 - t) / .4);
+  const grow = mode === "drift" ? 1 : (P.style === "burst" ? 1 - Math.pow(1 - gt, 3) : gt * gt * (3 - 2 * gt));
+  const dr = mode !== "grow";
+  return { grow, rot: dr ? .2 * Math.sin(t * TAU) : 0, twistAdd: dr ? .3 * Math.sin(t * TAU + .8) : 0, peaksAdd: dr ? .12 * Math.sin(t * TAU * 2) : 0 };
+}
+function render(ctx, S, anim = STATIC){
+  A = anim;
+  const saved = { twist:P.twist, peaks:P.peaks };
+  P.twist = Math.max(-1.5, Math.min(1.5, P.twist + A.twistAdd)); P.peaks = clamp01(P.peaks + A.peaksAdd);
+  try {
+    const D = selection(), st = statsOf(D), pal = palette(P);
+    const norm = (d, k) => { const [lo, hi] = st[k]; return hi > lo ? (d[k] - lo) / (hi - lo) : .5; };
+    const peak = x => Math.pow(clamp01(x), .45 + P.peaks * 3.2);
+    const curve = x => { const k = 1 + P.contrast * 11, s = v => 1 / (1 + Math.exp(-k * (v - .5)));
+      return (s(clamp01(x)) - s(0)) / (s(1) - s(0)); };
+    const alphaOf = x => lerp(.75 - .6 * P.contrast, 1, curve(x));
+    const rnd = mulberry32(P.seed), noise = makeNoise(P.seed);
+    const U = S / 1600; // unit relative to a 1600px canvas
+    const N = D.length, ramp = Math.max(1, N * .1);
+    const rev = i => { const e = clamp01((A.grow * (N + ramp) - i) / ramp); return 1 - Math.pow(1 - e, 3); };
+    const kit = { D, st, pal, norm, peak, curve, alphaOf, rnd, noise, U, S, rev };
+    ctx.save();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, S, S);
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
+    if (P.style === "corona") drawCorona(ctx, kit);
+    else if (P.style === "burst") drawBurst(ctx, kit);
+    else drawBloom(ctx, kit);
+    WARP = null;
+    if (P.labels) drawLabels(ctx, kit);
+    ctx.restore();
+  } finally { Object.assign(P, saved); A = STATIC; }
+}
+
+/* Global twist: every point drawn passes through a vortex warp around the artwork's centre.
+   Lines are subdivided so straight strokes bend into spirals. */
+let WARP = null, WSTEP = 8;
+function setWarp(cx, cy, S){
+  WSTEP = S * .007;
+  if (Math.abs(P.twist) < .005 && Math.abs(A.rot) < .0005){ WARP = null; return; }
+  const rot = A.rot;
+  const k = P.twist * 1.25 * TAU / (S * .5); // up to 1¼ turns at the edge of the circle
+  WARP = (x, y) => { const dx = x - cx, dy = y - cy, r = Math.hypot(dx, dy), a = r * k + rot, c = Math.cos(a), s = Math.sin(a);
+    return [cx + dx * c - dy * s, cy + dx * s + dy * c]; };
+}
+function wp(x, y){ return WARP ? WARP(x, y) : [x, y]; }
+function seg(ctx, x1, y1, x2, y2, first){
+  if (!WARP){ if (first) ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); return; }
+  const n = Math.max(1, Math.min(40, Math.ceil(Math.hypot(x2 - x1, y2 - y1) / WSTEP)));
+  for (let i = first ? 0 : 1; i <= n; i++){ const t = i / n, [x, y] = WARP(lerp(x1, x2, t), lerp(y1, y2, t)); (i === 0) ? ctx.moveTo(x, y) : ctx.lineTo(x, y); }
+}
+function line(ctx, x1, y1, x2, y2){ ctx.beginPath(); seg(ctx, x1, y1, x2, y2, true); ctx.stroke(); }
+function pline(ctx, pts){ ctx.beginPath(); for (let i = 1; i < pts.length; i++) seg(ctx, pts[i-1][0], pts[i-1][1], pts[i][0], pts[i][1], i === 1); ctx.stroke(); }
+function poly(ctx, pts){ ctx.beginPath(); for (let i = 0; i < pts.length; i++){ const a = pts[i], b = pts[(i + 1) % pts.length]; seg(ctx, a[0], a[1], b[0], b[1], i === 0); } ctx.closePath(); ctx.fill(); }
+function dot(ctx, x, y, r){ const [px, py] = wp(x, y); ctx.beginPath(); ctx.arc(px, py, Math.max(.3, r), 0, TAU); ctx.fill(); }
+function rolling(D, key, w){ return D.map((_, i) => { let s = 0, c = 0; for (let j = i - w; j <= i + w; j++) if (D[j]){ s += D[j][key]; c++; } return s / c; }); }
+function normArr(a){ const lo = Math.min(...a), hi = Math.max(...a); return a.map(v => hi > lo ? (v - lo) / (hi - lo) : .5); }
+
+/* Corona: radial tree. hub → month → week → night → stage fans (deep, REM, light) → performance whisker.
+   Grow runs like a plant: branches push out from the hub level by level, each fan springs open,
+   and a wave sweeps clockwise through the months so earlier nights lead slightly. */
+function drawCorona(ctx, k){
+  const { D, pal, norm, peak, alphaOf, rnd, noise, U, S } = k;
+  const N = D.length, cx = S/2, cy = S/2;
+  setWarp(cx, cy, S);
+  const g = A.grow;
+  const easeOut = p => 1 - Math.pow(1 - p, 3);
+  const easeBack = p => { const c = 1.6; return 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2); };
+  const stag = i => (i / N) * .18 + (noise(i * .31, 7.7) - .5) * .05;
+  const ph = (start, dur, i) => g >= 1 ? 1 : clamp01((g - start - stag(i)) / dur);
+  const PH = { month:[0, .1], week:[.05, .1], stem:[.12, .14], deep:[.24, .16], rem:[.34, .16], light:[.44, .16], whisker:[.56, .2] };
+  const lw = U * (.35 + P.weight * 2.4);
+  const rM = S * .055, rW = S * .11, band = S * .05, Rmax = S * .49;
+  // a 7-night rolling average makes the silhouette swell and dip with your sleep over the months
+  const roll = normArr(rolling(D, "asleep", 3));
+  const gap = 1.4, weeksN = Math.ceil(N / 7), slots = N + weeksN * gap;
+  const wedge = TAU / slots;
+  const ang = i => -Math.PI/2 + (i + Math.floor(i / 7) * gap + .5) * wedge;
+  const pt = (a, r) => [cx + Math.cos(a) * r, cy + Math.sin(a) * r];
+  const toward = (p0, p1, t) => [lerp(p0[0], p1[0], t), lerp(p0[1], p1[1], t)];
+
+  const weeks = [];
+  for (let i = 0; i < N; i += 7){ const to = Math.min(N, i + 7); weeks.push({ a: (ang(i) + ang(to - 1)) / 2, from:i, to }); }
+  const months = [];
+  for (let w = 0; w < weeks.length; w += 4){ const gr = weeks.slice(w, w + 4); months.push({ a: (gr[0].a + gr[gr.length-1].a) / 2, weeks:gr }); }
+
+  ctx.strokeStyle = rgba(pal.fg, .6); ctx.lineWidth = lw * .9;
+  for (const m of months){
+    const pm = easeOut(ph(...PH.month, m.weeks[0].from)); if (pm <= 0) continue;
+    const mp = pt(m.a, rM); line(ctx, cx, cy, ...toward([cx, cy], mp, pm));
+    for (const w of m.weeks){ const pw = easeOut(ph(...PH.week, w.from)); if (pw <= 0) continue;
+      line(ctx, ...mp, ...toward(mp, pt(w.a, rW), pw)); }
+  }
+
+  const rings = [[], [], []]; // stage-boundary points per week, drawn as pale ring segments
+  const stages = [["deep", pal.deep], ["rem", pal.rem], ["light", pal.light]];
+  for (const w of weeks){
+    const wp0 = pt(w.a, rW);
+    const wr = [[], [], []];
+    for (let i = w.from; i < w.to; i++){
+      const d = D[i], a = ang(i);
+      const ja = (rnd() - .5) * wedge * 2.5;
+      const ps = easeOut(ph(...PH.stem, i)); if (ps <= 0) continue;
+      const r2 = S * (.155 + .085 * roll[i] * (.4 + P.peaks));
+      ctx.strokeStyle = rgba(pal.light, .55 * alphaOf(norm(d, "asleep"))); ctx.lineWidth = lw * .7;
+      line(ctx, ...wp0, ...toward(wp0, pt(a, r2), ps));
+      if (ps < 1) continue;
+
+      let rA = r2, done = true;
+      stages.forEach(([key, col], si) => {
+        if (!done) return;
+        const p = ph(...PH[key], i); if (p <= 0){ done = false; return; }
+        const n = norm(d, key);
+        const rB = rA + band * (.18 + 1.75 * peak(n)) * easeBack(p);
+        const al = alphaOf(n) * Math.min(1, p * 2.5);
+        const m = 1 + Math.round(P.complexity * 18 * (d[key] / 170));
+        const spread = wedge * (.8 + 2.6 * P.complexity) * (.3 + .9 * n) * (.25 + .75 * easeOut(p));
+        ctx.fillStyle = rgba(col, al * (.16 + .26 * P.contrast));
+        poly(ctx, [pt(a, rA), pt(a - spread/2, rB), pt(a + spread/2, rB)]);
+        ctx.strokeStyle = rgba(col, al); ctx.lineWidth = lw * (.45 + .9 * n);
+        const [ax, ay] = pt(a, rA);
+        for (let j = 0; j < m; j++){
+          const t = m === 1 ? .5 : j / (m - 1);
+          const rag = 1 + (noise(i * .71 + si * 13, j * .9) - .5) * (.3 + .9 * P.peaks);
+          const [bx, by] = pt(a + (t - .5) * spread, rA + (rB - rA) * rag);
+          line(ctx, ax, ay, bx, by);
+        }
+        ctx.fillStyle = rgba(shade(col, .55), al * .9);
+        dot(ctx, ...pt(a, rB), lw * (1.1 + n) * Math.min(1, p * 1.5));
+        wr[si].push(pt(a, rB));
+        rA = rB;
+        if (p < 1) done = false;
+      });
+      if (!done) continue;
+      // whisker = performance; the best nights shoot to the edge
+      const pk = easeOut(ph(...PH.whisker, i)); if (pk <= 0) continue;
+      const pn = norm(d, "perf");
+      const sp = (Rmax - rA) * (.08 + .92 * peak(pn)) * (.3 + .7 * P.peaks) * pk;
+      ctx.strokeStyle = rgba(pal.awake, alphaOf(pn) * .85); ctx.lineWidth = lw * (.5 + .8 * pn);
+      const [ex, ey] = pt(a + ja * pk, rA + sp);
+      line(ctx, ...pt(a, rA), ex, ey);
+      ctx.fillStyle = rgba(pal.accent, alphaOf(norm(d, "awake")));
+      dot(ctx, ex, ey, lw * (1 + 3 * norm(d, "awake")) * pk);
+    }
+    wr.forEach((r, si) => rings[si].push(r));
+  }
+  ctx.strokeStyle = rgba(pal.fg, .28 + .3 * P.contrast); ctx.lineWidth = lw * .6;
+  for (const level of rings) for (const r of level) if (r.length > 1) pline(ctx, r);
+
+  ctx.fillStyle = pal.fg;
+  for (const w of weeks){ const pw = ph(...PH.week, w.from); if (pw >= 1) dot(ctx, ...pt(w.a, rW), lw * 1.6); }
+  for (const m of months){ const pm = ph(...PH.month, m.weeks[0].from); if (pm >= 1) dot(ctx, ...pt(m.a, rM), lw * 2.4); }
+  dot(ctx, cx, cy, S * .007 * (.6 + .4 * Math.min(1, g * 8)));
+}
+
+/* Burst: each night is a ray. length = asleep, thickness = deep, wobble = low consistency, ticks = REM, forks = awake */
+function drawBurst(ctx, k){
+  const { D, pal, norm, peak, alphaOf, rnd, noise, U, S } = k;
+  const N = D.length, cx = S*.55, cy = S*.47;
+  setWarp(cx, cy, S); const rev = k.rev;
+  const lw = U * (.5 + P.weight * 2.8);
+  const cols = [pal.light, pal.deep, pal.rem, pal.awake];
+
+  const count = Math.round(140 + P.complexity * 1700);
+  for (let i = 0; i < count; i++){
+    const x = rnd() * S, y = rnd() * S;
+    const ra = Math.atan2(y - cy, x - cx);
+    const a = ra + (noise(x / S * 3, y / S * 3) - .5) * Math.PI * 1.4;
+    const len = S * (.006 + rnd() * .016);
+    const c = cols[(rnd() * 4) | 0];
+    ctx.strokeStyle = rgba(c, lerp(.25, .75, rnd()) * (.55 + .45 * P.contrast)); ctx.lineWidth = lw * .7;
+    const dx = Math.cos(a) * len / 2, dy = Math.sin(a) * len / 2;
+    line(ctx, x - dx, y - dy, x + dx, y + dy);
+    if (rnd() < .025 * P.complexity){
+      const n = 4 + (rnd() * 8 | 0), gp = S * .006, pa = a + Math.PI/2;
+      for (let j = 0; j < n; j++){
+        const ox = x + Math.cos(a) * gp * j, oy = y + Math.sin(a) * gp * j;
+        line(ctx, ox, oy, ox + Math.cos(pa) * len * .6, oy + Math.sin(pa) * len * .6);
+      }
+    }
+  }
+
+  function ray(ox, oy, a0, L, d, idx, opts = {}){
+    const wob = .12 + (1 - norm(d, "cons")) * .9;
+    const steps = 26, step = L / steps;
+    let x = ox, y = oy, h = a0; const pts = [[x, y]];
+    for (let s = 0; s < steps; s++){
+      h += (noise(idx * .37 + 11, s * .16) - .5) * wob * .55;
+      x += Math.cos(h) * step; y += Math.sin(h) * step; pts.push([x, y]);
+    }
+    const ns = { light:norm(d,"light"), deep:norm(d,"deep"), rem:norm(d,"rem") };
+    const dom = Object.keys(ns).reduce((a, b) => ns[a] >= ns[b] ? a : b);
+    const col = opts.color || pal[dom];
+    const al = alphaOf(norm(d, "perf"));
+    ctx.strokeStyle = rgba(col, al); ctx.lineWidth = (opts.w || 1) * lw * (.55 + 2.4 * ns.deep);
+    const vis = (opts.e ?? 1) > 0;
+    if (vis) pline(ctx, pts);
+    if (!opts.noTicks && rnd() < .3 + .65 * P.complexity){
+      const spacing = S * (.032 - .022 * P.complexity), tl = S * (.004 + .02 * ns.rem);
+      const tc = dom === "rem" ? pal.light : pal.rem;
+      ctx.strokeStyle = rgba(tc, al * .85); ctx.lineWidth = lw * .65;
+      let acc = spacing * rnd();
+      for (let s = 1; s < pts.length; s++){
+        const [x0, y0] = pts[s-1], [x1, y1] = pts[s], sl = Math.hypot(x1 - x0, y1 - y0);
+        const sa = Math.atan2(y1 - y0, x1 - x0) + Math.PI/2;
+        acc += sl;
+        while (acc > spacing){ acc -= spacing; const t = 1 - acc / sl;
+          const tx = lerp(x0, x1, t), ty = lerp(y0, y1, t);
+          line(ctx, tx - Math.cos(sa) * tl/2, ty - Math.sin(sa) * tl/2, tx + Math.cos(sa) * tl/2, ty + Math.sin(sa) * tl/2); }
+      }
+    }
+    ctx.fillStyle = rgba(col === pal.deep ? pal.rem : pal.deep, al);
+    if (rnd() < .4){ const di = (steps * (.3 + rnd() * .5)) | 0; if (vis) dot(ctx, ...pts[di], lw * 2.2); }
+    return { pts, h, al };
+  }
+
+  for (let i = 0; i < N; i++){
+    const d = D[i];
+    const a = i / N * TAU + (rnd() - .5) * .6 - Math.PI/2;
+    const e = rev(i), L = S * (.07 + .4 * peak(norm(d, "asleep"))) * e;
+    const r = ray(cx, cy, a, L, d, i, { e });
+    const end = r.pts[r.pts.length - 1];
+    ctx.fillStyle = rgba(pal.deep, r.al);
+    if (e > 0) dot(ctx, ...end, S * (.0012 + .0036 * norm(d, "perf")));
+    const aw = norm(d, "awake");
+    if (aw > .45 - .3 * P.complexity){
+      const p = r.pts[(r.pts.length * .65) | 0];
+      ray(p[0], p[1], r.h + (rnd() < .5 ? -1 : 1) * (.35 + rnd() * .5), L * (.25 + .35 * aw), d, i + 500, { e, w:.6, noTicks:true, color:pal.awake });
+    }
+  }
+  const core = Math.round(N * (.4 + 1.4 * P.complexity));
+  for (let j = 0; j < core; j++){
+    const d = D[(rnd() * N) | 0], ec = rev(j / core * N);
+    ray(cx + (rnd() - .5) * S * .03, cy + (rnd() - .5) * S * .03, rnd() * TAU, S * (.03 + .09 * rnd()) * (.5 + norm(d, "deep")) * ec, d, 900 + j, { e:ec, w:.5, noTicks:true, color: rnd() < .6 ? pal.deep : pal.accent });
+  }
+  const naps = D.filter(d => d.nap);
+  if (naps.length){
+    const sx = S * .2, sy = S * .74;
+    naps.forEach((d, n) => {
+      const en = rev(D.indexOf(d));
+      const rays = 6 + Math.round(P.complexity * 18);
+      for (let j = 0; j < rays; j++)
+        ray(sx, sy, rnd() * TAU, S * (.03 + .12 * rnd()) * (.4 + norm(d, "asleep")) * en, d, 2000 + n * 50 + j, { w:.55, e:en });
+    });
+    ctx.fillStyle = pal.deep; dot(ctx, sx, sy, S * .005);
+  }
+  ctx.fillStyle = pal.accent; dot(ctx, cx, cy, S * .006);
+}
+
+/* Bloom: a tilted sphere of curved petals. Oldest night at the rim, newest at the open eye.
+   The sphere swells where a run of nights was long, and petals are lit from the upper left. */
+function drawBloom(ctx, k){
+  const { D, pal, norm, peak, curve, alphaOf, rnd, noise, U, S } = k;
+  const N = D.length, cx = S/2, cy = S/2;
+  setWarp(cx, cy, S); const rev = k.rev;
+  const g = A.grow, R = S * .27 * (.35 + .65 * (1 - Math.pow(1 - g, 3)));
+  const lw = U * (.4 + P.weight * 2);
+
+  // flow streaks circling the sphere
+  const count = Math.round(250 + P.complexity * 1600);
+  ctx.lineWidth = lw * .55;
+  for (let i = 0; i < count; i++){
+    const r = S * (.3 + rnd() * .5), th = rnd() * TAU, ds = .02 + rnd() * .09;
+    const pts = []; for (let s = 0; s <= 4; s++){ const t = th + ds * s / 4, rr = r * (1 - .02 * s / 4); pts.push([cx + Math.cos(t) * rr, cy + Math.sin(t) * rr]); }
+    ctx.strokeStyle = rgba(pal.fg, (.08 + rnd() * .3) * (.6 + .4 * P.contrast));
+    pline(ctx, pts);
+  }
+
+  const roll = normArr(rolling(D, "asleep", 4));
+  const petals = [];
+  for (let i = 0; i < N; i++){
+    const d = D[i], tot = Math.max(1, d.light + d.deep + d.rem + d.awake);
+    const per = Math.max(1, Math.round((2 + P.complexity * 11) * (d.asleep / 440)));
+    const fr = [["deep", d.deep], ["rem", d.rem], ["light", d.light], ["awake", d.awake]];
+    for (let j = 0; j < per; j++){
+      let t = (j + .5) / per * tot, key = "light";
+      for (const [kk, v] of fr){ if (t <= v){ key = kk; break; } t -= v; }
+      petals.push({ i, key, n: norm(d, key) });
+    }
+  }
+  const K = petals.length;
+  const sizeScale = Math.min(1.5, Math.sqrt(1600 / Math.max(200, K)));
+  // centred by default; "Random tilt" turns the sphere a seeded amount
+  const tr = mulberry32(P.seed * 31 + 7), tx = P.tilt ? (tr() - .5) * 1.2 : 0, ty = P.tilt ? (tr() - .5) * 1.2 : 0, cX = Math.cos(tx), sX = Math.sin(tx), cY = Math.cos(ty), sY = Math.sin(ty);
+  const rot = ([x, y, z]) => { const y1 = y * cX - z * sX, z1 = y * sX + z * cX; return [x * cY + z1 * sY, y1, -x * sY + z1 * cY]; };
+  const light = (() => { const v = [-.55, -.6, .58], m = Math.hypot(...v); return v.map(c => c / m); })();
+  const phiMin = .2, phiMax = 1.95;
+
+  const items = [];
+  for (let kk = 0; kk < K; kk++){
+    const p = petals[kk], f = 1 - kk / K; // oldest (kk=0) at the rim
+    // bud → bloom: petals emerge at the eye first and slide outward as they unfurl, rim petals last
+    const p0 = g >= 1 ? 1 : clamp01((g - f * .5 - (noise(kk * .05, 3.3) - .5) * .08) / .42); if (p0 <= 0) continue;
+    const q = p0 - 1, e = 1 + 2.5 * q * q * q + 1.5 * q * q, open = 1 - Math.pow(1 - p0, 3);
+    const phi = phiMin + (phiMax - phiMin) * Math.sqrt(f) * (.35 + .65 * open);
+    const th = kk * GOLDEN;
+    const sp = Math.sin(phi), cp = Math.cos(phi), st = Math.sin(th), ct = Math.cos(th);
+    const nrm = [sp * ct, sp * st, cp], ePhi = [cp * ct, cp * st, -sp], eTh = [-st, ct, 0];
+    const swell = 1 + (roll[p.i] - .5) * (.1 + .35 * P.peaks) + (noise(th * .8, phi * 3) - .5) * .12;
+    const len = S * (.03 + .1 * peak(p.n)) * sizeScale * (.8 + .4 * Math.sin(phi)) * e;
+    const curl = (noise(p.i * .21, kk * .013) - .5) * (.4 + 1.6 * P.complexity) * (1 + 2.5 * (1 - open));
+    // petal centreline in 3D: leaves the surface along the normal, sweeps away from the eye, curls sideways
+    const pts3 = [];
+    for (let s = 0; s <= 5; s++){
+      const t = s / 5;
+      const out = R * swell + len * t * .55;
+      pts3.push([0, 1, 2].map(c => nrm[c] * out + ePhi[c] * len * t * .85 + eTh[c] * len * curl * t * t));
+    }
+    const P3 = pts3.map(rot);
+    const nz = rot(nrm);
+    const lam = Math.max(0, nz[0] * light[0] + nz[1] * light[1] + nz[2] * light[2]);
+    items.push({ p, z: P3[0][2], pts: P3.map(v => [cx + v[0], cy + v[1]]), lam, depth: nz[2], len, p0 });
+  }
+  items.sort((a, b) => a.z - b.z);
+
+  for (const it of items){
+    const { p, pts, lam, depth, len, p0 } = it;
+    const w = Math.max(U * 2, len * (.2 + .12 * P.weight)) * (.7 + .3 * Math.max(0, depth));
+    const base = pal[p.key];
+    const tone = shade(shade(base, (curve(p.n) - .5) * .45 * (.3 + P.contrast)), (lam - .55) * (.35 + .4 * P.contrast));
+    const al = Math.max(.6, alphaOf(p.n)) * Math.min(1, p0 * 3);
+    ctx.strokeStyle = rgba(shade(pal.bg, -.4), .4); ctx.lineWidth = w;
+    pline(ctx, pts.map(([x, y]) => [x + w * .25, y + w * .35]));
+    ctx.strokeStyle = rgba(tone, al); ctx.lineWidth = w;
+    pline(ctx, pts);
+    ctx.strokeStyle = rgba(shade(tone, .45), al); ctx.lineWidth = w * .4;
+    pline(ctx, pts.slice(3));
+  }
+  // the eye at the pole
+  const pole = rot([0, 0, 1]);
+  const [ex, ey] = wp(cx + pole[0] * R, cy + pole[1] * R);
+  const er = R * Math.sin(phiMin) * 1.05, ea = Math.atan2(pole[1], pole[0]);
+  ctx.fillStyle = P.bg === "night" ? "#0B0C10" : "#22222A";
+  ctx.beginPath(); ctx.ellipse(ex, ey, er * Math.abs(pole[2]), er, ea, 0, TAU); ctx.fill();
+  ctx.strokeStyle = rgba(pal.accent === "#000000" ? "#888888" : pal.accent, .7); ctx.lineWidth = U * 3; ctx.stroke();
+  ctx.strokeStyle = rgba("#FFFFFF", .15); ctx.lineWidth = U * 1.5;
+  ctx.beginPath(); ctx.ellipse(ex, ey, er * .72 * Math.abs(pole[2]), er * .72, ea, 0, TAU); ctx.stroke();
+}
+
+function fmtMin(m){ const h = Math.floor(m / 60), r = Math.round(m % 60); return `${h}h ${String(r).padStart(2, "0")}m`; }
+const MON = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+const fmtDay = d => `${String(d.getDate()).padStart(2,"0")} ${MON[d.getMonth()]} ${d.getFullYear()}`;
+
+function drawLabels(ctx, k){
+  const { D, st, pal, S } = k, f = S / 1000, m = S * .045;
+  const fg = pal.fg;
+  ctx.fillStyle = fg; ctx.textBaseline = "alphabetic";
+  // top-left
+  ctx.font = `700 ${21*f}px "Chivo Mono", monospace`; ctx.textAlign = "left";
+  const title = P.style.toUpperCase();
+  ctx.fillText(title, m, m + 20*f);
+  ctx.fillRect(m, m + 29*f, ctx.measureText(title).width, 3.5*f);
+  // bottom-left
+  ctx.font = `800 ${62*f}px "Chivo", sans-serif`;
+  const nStr = String(Math.round(D.length * Math.min(1, A.grow))); ctx.fillText(nStr, m, S - m - 62*f);
+  const nw = ctx.measureText(nStr).width;
+  ctx.font = `700 ${17*f}px "Chivo Mono", monospace`;
+  ctx.fillText(P.naps ? "SLEEPS" : "NIGHTS", m + nw + 10*f, S - m - 64*f);
+  ctx.fillRect(m, S - m - 50*f, nw + 10*f + ctx.measureText("NIGHTS").width, 3.5*f);
+  ctx.font = `500 ${15*f}px "Chivo Mono", monospace`;
+  ctx.fillText(fmtDay(D[0].date), m, S - m - 24*f);
+  ctx.fillText(fmtDay(D[D.length-1].date), m, S - m);
+  // bottom-right
+  const avg = D.reduce((s, d) => s + d.asleep, 0) / D.length;
+  const rows = [["Avg asleep", fmtMin(avg)], ["Performance", `${st.perf[0]}–${st.perf[1]}%`]];
+  ctx.textAlign = "right";
+  rows.forEach(([l, v], i) => {
+    const y = S - m - (rows.length - 1 - i) * 46*f;
+    ctx.font = `700 ${34*f}px "Chivo", sans-serif`; ctx.fillText(v, S - m, y);
+    const vw = ctx.measureText(v).width;
+    ctx.font = `400 ${15*f}px "Chivo Mono", monospace`; ctx.globalAlpha = .8;
+    ctx.fillText(l, S - m - vw - 16*f, y - 4*f); ctx.globalAlpha = 1;
+  });
+  ctx.textAlign = "left";
+}
+
+/* ---------- UI ---------- */
+const COARSE = matchMedia("(pointer:coarse)").matches, NARROW = matchMedia("(max-width:860px)").matches;
+if (NARROW) document.querySelectorAll('details.sec[data-m="closed"]').forEach(d => { d.open = false; });
+if (COARSE) $("gifSize").value = "480";
+const cv = $("cv"), cctx = cv.getContext("2d");
+let raf = 0;
+function schedule(){ if (playing) return; cancelAnimationFrame(raf); raf = requestAnimationFrame(draw); }
+function draw(){
+  const box = cv.getBoundingClientRect();
+  const px = Math.min(playing ? (COARSE ? 720 : 1000) : (COARSE ? 1300 : 2000), Math.max(300, Math.round(box.width * (window.devicePixelRatio || 1))));
+  if (cv.width !== px){ cv.width = px; cv.height = px; }
+  render(cctx, px, playing ? curAnim : STATIC);
+}
+new ResizeObserver(schedule).observe(cv);
+
+const LEGENDS = {
+  corona: "Each spoke is one night, read clockwise from the top; seven spokes share a week node and four weeks share a month node. The inner edge swells and dips with your 7-night average. Moving outward, the fans show deep, REM and light sleep, wider and longer for stronger nights. The fine whisker is sleep performance, and the dot at its tip grows with time awake.",
+  burst: "Each ray is one night. Length is time asleep, thickness is deep sleep, wobble is low sleep consistency, cross-ticks are REM and the end dot is sleep performance. Restless nights fork. Naps, when included, burst off to the lower left.",
+  bloom: "Each petal is a slice of one night, coloured by sleep stage, on a tilted sphere. The spiral runs from your oldest night at the rim to your newest at the open eye in the middle. Longer petals mean that stage was strong that night, and the sphere bulges where a run of nights was long."
+};
+
+function renderSwatches(){
+  const sw = $("swatches"), nm = $("swnames"); sw.innerHTML = ""; nm.innerHTML = "";
+  for (const key of Object.keys(PALETTES)){
+    const p = key === "mono" ? palette({ palette:"mono", bg:P.bg }) : PALETTES[key];
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "sw"; b.dataset.pal = key; b.setAttribute("aria-label", PALETTES[key].name + " palette");
+    b.setAttribute("aria-pressed", String(P.palette === key));
+    for (const c of [p.light, p.deep, p.rem, p.awake]){ const i = document.createElement("i"); i.style.background = c; b.appendChild(i); }
+    b.addEventListener("click", () => { P.palette = key; sync(); });
+    sw.appendChild(b);
+    const s = document.createElement("span"); s.textContent = PALETTES[key].name; nm.appendChild(s);
+  }
+}
+
+function sync(){
+  for (const id of ["peaks","contrast","complexity","weight"]){ $(id).value = Math.round(P[id] * 100); $(id + "Out").textContent = Math.round(P[id] * 100); }
+  $("twist").value = Math.round(P.twist * 100); $("twistOut").textContent = (P.twist > 0 ? "+" : "") + Math.round(P.twist * 450) + "°";
+  const pool = ALL.filter(d => P.naps || !d.nap);
+  $("nights").max = pool.length; $("nights").value = Math.min(P.nights, pool.length);
+  const D = selection();
+  $("nightsOut").textContent = D.length + " / " + pool.length;
+  $("naps").checked = P.naps; $("labels").checked = P.labels; $("tilt").checked = P.tilt;
+  $("tiltWrap").hidden = P.style !== "bloom";
+  $("dur").value = P.dur; $("durOut").textContent = P.dur + " s";
+  document.querySelectorAll("#modeSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.mode === P.mode)));
+  $("seedLab").textContent = "#" + P.seed;
+  document.querySelectorAll("#styleSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.style === P.style)));
+  document.querySelectorAll("#bgSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.bg === P.bg)));
+  renderSwatches();
+  const fd = d => `${MON[d.getMonth()].charAt(0)}${MON[d.getMonth()].slice(1).toLowerCase()} ${d.getDate()}`;
+  $("dataChip").textContent = `${D.length} ${P.naps ? "SLEEPS" : "NIGHTS"} · ${fd(D[0].date)} – ${fd(D[D.length-1].date)}, ${D[D.length-1].date.getFullYear()}`;
+  const avg = k => D.reduce((s, d) => s + d[k], 0) / D.length;
+  $("stats").innerHTML = `<div><b>${fmtMin(avg("asleep"))}</b><span>Avg asleep</span></div><div><b>${Math.round(avg("deep"))}m</b><span>Avg deep</span></div><div><b>${Math.round(avg("perf"))}%</b><span>Avg perf.</span></div>`;
+  $("legendText").textContent = LEGENDS[P.style]; $("legendMobile").textContent = LEGENDS[P.style];
+  const pal = palette(P);
+  $("keys").innerHTML = [["Light", pal.light], ["Deep", pal.deep], ["REM", pal.rem], ["Awake", pal.awake]]
+    .map(([n, c]) => `<span><i style="background:${c}"></i>${n}</span>`).join("");
+  schedule();
+}
+
+for (const id of ["peaks","contrast","complexity","weight"]) $(id).addEventListener("input", e => { P[id] = e.target.value / 100; sync(); });
+$("twist").addEventListener("input", e => { P.twist = e.target.value / 100; sync(); });
+$("nights").addEventListener("input", e => { P.nights = +e.target.value; sync(); });
+$("naps").addEventListener("change", e => { const wasAll = P.nights >= ALL.filter(d => P.naps || !d.nap).length; P.naps = e.target.checked; if (wasAll) P.nights = 9999; sync(); });
+$("labels").addEventListener("change", e => { P.labels = e.target.checked; sync(); });
+$("tilt").addEventListener("change", e => { P.tilt = e.target.checked; sync(); });
+document.querySelectorAll("#styleSeg button").forEach(b => b.addEventListener("click", () => {
+  if (P.style === b.dataset.style) return; P.style = b.dataset.style; Object.assign(P, PRESETS[P.style]); sync(); }));
+document.querySelectorAll("#bgSeg button").forEach(b => b.addEventListener("click", () => { P.bg = b.dataset.bg; sync(); }));
+$("shuffle").addEventListener("click", () => { P.seed = 1 + Math.floor(Math.random() * 9999); sync(); });
+$("remix").addEventListener("click", () => {
+  const r = Math.random; P.seed = 1 + Math.floor(r() * 9999);
+  P.peaks = +(r()).toFixed(2); P.contrast = +(r()).toFixed(2); P.complexity = +(.2 + r() * .8).toFixed(2);
+  P.twist = +(r() * 2 - 1).toFixed(2); P.weight = +(r() * .8).toFixed(2);
+  const keys = Object.keys(PALETTES); P.palette = keys[(r() * keys.length) | 0]; sync(); });
+
+$("file").addEventListener("change", e => {
+  const file = e.target.files[0]; if (!file) return;
+  const fr = new FileReader();
+  fr.onload = () => { try { ALL = parseCSV(fr.result); P.nights = 9999; sync(); status(`Loaded ${file.name}: ${ALL.length} rows`);
+      $("dataNote").textContent = `Showing ${file.name}. It was read on your device and not uploaded.`; }
+    catch (err) { status(err.message); } e.target.value = ""; };
+  fr.readAsText(file);
+});
+
+function status(msg){ $("status").textContent = msg; }
+
+let downloads = null;
+(async () => { try { if (window.claude && window.claude.use) downloads = await window.claude.use("downloads"); } catch (_) {} })();
+
+$("export").addEventListener("click", async () => {
+  const size = +$("size").value, fmt = $("fmt").value;
+  status(`Rendering ${size} × ${size}…`);
+  await new Promise(r => setTimeout(r, 20));
+  const c = document.createElement("canvas"); c.width = c.height = size;
+  render(c.getContext("2d"), size);
+  const blob = await new Promise(r => c.toBlob(r, fmt === "jpg" ? "image/jpeg" : "image/png", .95));
+  if (!blob){ status("The image could not be rendered. Try a smaller size."); return; }
+  const name = `somnograph-${P.style}-${P.seed}-${size}.${fmt}`;
+  if (downloads){
+    try { await downloads.save({ filename:name, data:blob }); status(`Saved ${name}`); }
+    catch (err) {
+      if (err && err.code === "declined") status("Export cancelled.");
+      else if (err && err.code === "rate_limited") status("A save prompt is already open. Finish it, then try again.");
+      else if (err && err.code === "too_large") status("That file is too large here. Pick a smaller size.");
+      else status("Saving isn't available in this view.");
+    }
+  } else {
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    status(`Exported ${name}`);
+  }
+});
+
+/* ---------- motion ---------- */
+let playing = false, t0 = 0, curAnim = STATIC;
+function loop(now){
+  if (!playing) return;
+  const t = ((now - t0) / (P.dur * 1000)) % 1;
+  curAnim = animAt(t, P.mode); draw();
+  requestAnimationFrame(loop);
+}
+function setPlaying(on){
+  playing = on; $("play").textContent = on ? "Pause" : "Play"; $("play").setAttribute("aria-pressed", String(on));
+  $("playFab").setAttribute("aria-pressed", String(on)); $("playFab").setAttribute("aria-label", on ? "Pause animation" : "Play animation");
+  $("fabIcon").setAttribute("d", on ? "M6 4h4v16H6zM14 4h4v16h-4z" : "M7 4l13 8-13 8z");
+  $("motionLab").textContent = on ? "Playing" : "Paused";
+  if (on){ t0 = performance.now(); requestAnimationFrame(loop); } else { curAnim = STATIC; schedule(); }
+}
+$("play").addEventListener("click", () => setPlaying(!playing));
+$("playFab").addEventListener("click", () => setPlaying(!playing));
+document.querySelectorAll("#modeSeg button").forEach(b => b.addEventListener("click", () => { P.mode = b.dataset.mode; t0 = performance.now(); sync(); }));
+$("dur").addEventListener("input", e => { P.dur = +e.target.value; sync(); });
+
+/* ---------- GIF encoding (median-cut palette + LZW), no external library ---------- */
+class ByteBuf {
+  constructor(n = 1 << 20){ this.a = new Uint8Array(n); this.n = 0; }
+  byte(b){ if (this.n >= this.a.length){ const x = new Uint8Array(this.a.length * 2); x.set(this.a); this.a = x; } this.a[this.n++] = b & 255; }
+  w16(v){ this.byte(v); this.byte(v >> 8); }
+  str(s){ for (let i = 0; i < s.length; i++) this.byte(s.charCodeAt(i)); }
+  out(){ return this.a.slice(0, this.n); }
+}
+function addHist(hist, data){
+  for (let i = 0; i < data.length; i += 8) hist[((data[i] >> 3) << 10) | ((data[i+1] >> 3) << 5) | (data[i+2] >> 3)]++;
+}
+function medianCut(hist, maxColors){
+  const R = i => i >> 10 & 31, G = i => i >> 5 & 31, B = i => i & 31;
+  const bins = []; for (let i = 0; i < 32768; i++) if (hist[i]) bins.push(i);
+  const mk = arr => { let r0 = 31, r1 = 0, g0 = 31, g1 = 0, b0 = 31, b1 = 0, cnt = 0;
+    for (const i of arr){ const r = R(i), g = G(i), b = B(i);
+      if (r < r0) r0 = r; if (r > r1) r1 = r; if (g < g0) g0 = g; if (g > g1) g1 = g; if (b < b0) b0 = b; if (b > b1) b1 = b; cnt += hist[i]; }
+    const rr = r1 - r0, gr = g1 - g0, br = b1 - b0;
+    return { arr, cnt, rr, gr, br, score: Math.max(rr, gr, br) * Math.sqrt(cnt) }; };
+  const boxes = [mk(bins)];
+  while (boxes.length < maxColors){
+    let bi = -1, best = -1;
+    boxes.forEach((b, k) => { if (b.arr.length > 1 && b.score > best){ best = b.score; bi = k; } });
+    if (bi < 0) break;
+    const b = boxes[bi], ch = (b.rr >= b.gr && b.rr >= b.br) ? R : (b.gr >= b.br ? G : B);
+    b.arr.sort((x, y) => ch(x) - ch(y));
+    let acc = 0, cut = 0;
+    for (; cut < b.arr.length - 2; cut++){ acc += hist[b.arr[cut]]; if (acc >= b.cnt / 2) break; }
+    boxes.splice(bi, 1, mk(b.arr.slice(0, cut + 1)), mk(b.arr.slice(cut + 1)));
+  }
+  return boxes.map(b => { let r = 0, g = 0, bl = 0, c = 0;
+    for (const i of b.arr){ const w = hist[i]; r += (R(i) * 8 + 4) * w; g += (G(i) * 8 + 4) * w; bl += (B(i) * 8 + 4) * w; c += w; }
+    return [Math.round(r / c), Math.round(g / c), Math.round(bl / c)]; });
+}
+function indexer(colors){
+  const lut = new Int16Array(32768).fill(-1);
+  return data => {
+    const out = new Uint8Array(data.length / 4);
+    for (let p = 0, i = 0; i < data.length; i += 4, p++){
+      const bin = ((data[i] >> 3) << 10) | ((data[i+1] >> 3) << 5) | (data[i+2] >> 3);
+      let v = lut[bin];
+      if (v < 0){ const r = (bin >> 10) * 8 + 4, g = (bin >> 5 & 31) * 8 + 4, b = (bin & 31) * 8 + 4; let bd = 1e9;
+        for (let k = 0; k < colors.length; k++){ const c = colors[k], d = (c[0]-r)**2 * 3 + (c[1]-g)**2 * 4 + (c[2]-b)**2 * 2; if (d < bd){ bd = d; v = k; } }
+        lut[bin] = v; }
+      out[p] = v;
+    }
+    return out;
+  };
+}
+function lzw(pixels, buf){
+  const HSIZE = 5003, htab = new Int32Array(HSIZE), codetab = new Int32Array(HSIZE);
+  const initBits = 9, Clear = 256, EOF = 257, maxmax = 4096, hshift = 4;
+  let nBits = initBits, maxcode = (1 << nBits) - 1, free = Clear + 2, clearFlg = false;
+  let acc = 0, bits = 0; const block = new Uint8Array(256); let bc = 0;
+  const flush = () => { if (bc > 0){ buf.byte(bc); for (let i = 0; i < bc; i++) buf.byte(block[i]); bc = 0; } };
+  const ch = c => { block[bc++] = c; if (bc >= 254) flush(); };
+  const out = code => {
+    acc &= (1 << bits) - 1; acc |= code << bits; bits += nBits;
+    while (bits >= 8){ ch(acc & 255); acc >>= 8; bits -= 8; }
+    if (free > maxcode || clearFlg){
+      if (clearFlg){ nBits = initBits; maxcode = (1 << nBits) - 1; clearFlg = false; }
+      else { nBits++; maxcode = nBits === 12 ? maxmax : (1 << nBits) - 1; }
+    }
+    if (code === EOF){ while (bits > 0){ ch(acc & 255); acc >>= 8; bits -= 8; } flush(); }
+  };
+  buf.byte(8);
+  htab.fill(-1);
+  out(Clear);
+  let ent = pixels[0];
+  outer: for (let p = 1; p < pixels.length; p++){
+    const c = pixels[p], fcode = (c << 12) + ent;
+    let i = (c << hshift) ^ ent;
+    if (htab[i] === fcode){ ent = codetab[i]; continue; }
+    if (htab[i] >= 0){
+      const disp = i === 0 ? 1 : HSIZE - i;
+      do { if ((i -= disp) < 0) i += HSIZE; if (htab[i] === fcode){ ent = codetab[i]; continue outer; } } while (htab[i] >= 0);
+    }
+    out(ent); ent = c;
+    if (free < maxmax){ codetab[i] = free++; htab[i] = fcode; }
+    else { htab.fill(-1); free = Clear + 2; clearFlg = true; out(Clear); }
+  }
+  out(ent); out(EOF);
+  buf.byte(0);
+}
+
+let gifBusy = false;
+function gifStatus(m){ $("gifStatus").textContent = m; }
+$("exportGif").addEventListener("click", async () => {
+  if (gifBusy) return; gifBusy = true; $("exportGif").disabled = true;
+  try {
+    const size = +$("gifSize").value, fps = +$("gifFps").value;
+    const frames = Math.max(2, Math.round(P.dur * fps)), delay = Math.max(2, Math.round(100 / fps));
+    const c = document.createElement("canvas"); c.width = c.height = size;
+    const ctx = c.getContext("2d", { willReadFrequently:true });
+    const grab = t => { render(ctx, size, animAt(t, P.mode)); return ctx.getImageData(0, 0, size, size).data; };
+    const tick = () => new Promise(r => setTimeout(r, 0));
+    gifStatus("Building colour palette…"); await tick();
+    const hist = new Uint32Array(32768);
+    for (const t of [.2, .45, .69, .85]) addHist(hist, grab(t));
+    const colors = medianCut(hist, 256); while (colors.length < 256) colors.push([0, 0, 0]);
+    const toIdx = indexer(colors);
+    const buf = new ByteBuf(1 << 22);
+    buf.str("GIF89a"); buf.w16(size); buf.w16(size); buf.byte(0xF7); buf.byte(0); buf.byte(0);
+    for (const [r, g, b] of colors){ buf.byte(r); buf.byte(g); buf.byte(b); }
+    buf.byte(0x21); buf.byte(0xFF); buf.byte(11); buf.str("NETSCAPE2.0"); buf.byte(3); buf.byte(1); buf.w16(0); buf.byte(0);
+    for (let f = 0; f < frames; f++){
+      const idx = toIdx(grab(f / frames));
+      buf.byte(0x21); buf.byte(0xF9); buf.byte(4); buf.byte(0x04); buf.w16(delay); buf.byte(0); buf.byte(0);
+      buf.byte(0x2C); buf.w16(0); buf.w16(0); buf.w16(size); buf.w16(size); buf.byte(0);
+      lzw(idx, buf);
+      gifStatus(`Encoding frame ${f + 1} of ${frames}…`); await tick();
+    }
+    buf.byte(0x3B);
+    const blob = new Blob([buf.out()], { type:"image/gif" });
+    const mb = (blob.size / 1048576).toFixed(1);
+    const name = `somnograph-${P.style}-${P.mode}-${P.seed}.gif`;
+    if (downloads){
+      try { await downloads.save({ filename:name, data:blob }); gifStatus(`Saved ${name} (${mb} MB)`); }
+      catch (err) {
+        if (err && err.code === "declined") gifStatus("Export cancelled.");
+        else if (err && err.code === "rate_limited") gifStatus("A save prompt is already open. Finish it, then try again.");
+        else if (err && err.code === "too_large") gifStatus("That GIF is too large here. Try a smaller size or lower frame rate.");
+        else gifStatus("Saving isn't available in this view.");
+      }
+    } else {
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      gifStatus(`Exported ${name} (${mb} MB)`);
+    }
+  } catch (err) { gifStatus("The GIF could not be made: " + err.message); }
+  finally { gifBusy = false; $("exportGif").disabled = false; }
+});
+
+
+sync();
+if (document.fonts){
+  Promise.all([document.fonts.load('700 20px "Chivo Mono"'), document.fonts.load('500 20px "Chivo Mono"'), document.fonts.load('800 20px "Chivo"'), document.fonts.load('700 20px "Chivo"')])
+    .then(schedule, schedule);
+}
+})();
+</script>
+
+</body></html>
